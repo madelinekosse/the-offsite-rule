@@ -46,7 +46,7 @@
                  keywordize-keys
                  :people
                  edn/read-string)]
-    (db/store-input-locations data)
+    (db/store-input-locations data 1);; TODO: implement event ids
     {:status 200
      :headers {"Content-Type" "application/json"}
      :body "{\"a\": \"B\"}"}))

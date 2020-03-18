@@ -1,9 +1,17 @@
-(ns the-offsite-rule.db)
+(ns the-offsite-rule.db
+  (:require
+   [clojure.java.jdbc :as j]
+   [clojure.pprint :as p]))
 
-(defn store-input-locations [inputs]
-  "For a list of maps containing user detail, write to file"
+
+(def db
+  {:classname   "org.sqlite.JDBC"
+   :subprotocol "sqlite"
+   :subname     "/home/mk-gsa/the-offsite-rule/the-offsite-rule"})
+
+;;TODO: validate inputs (eg if theres no such event)
+(defn store-input-locations [inputs event-id]
+  (j/delete! db :person ["event_id = ?" event-id])
   (->> inputs
-       (map #(str "Name: " (:name %) " Postcode: " (:postcode %) "\n"))
-       (apply str)
-       (spit "people.txt"))
-  )
+       (map #(assoc % :event_id event-id))
+       (j/insert-multi! db :person))) ;; TODO: make this respond if it fails
