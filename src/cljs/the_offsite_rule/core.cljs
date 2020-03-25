@@ -5,7 +5,7 @@
    [reitit.frontend :as reitit]
    [clerk.core :as clerk]
    [accountant.core :as accountant]
-   [the-offsite-rule.form :as form]))
+   [the-offsite-rule.edit :as edit]))
 
 ;; -------------------------
 ;; Routes
@@ -14,7 +14,8 @@
   (reitit/router
    [["/" :index]
     ["/results" :results] 
-    ["/new" :new]
+    ["/edit"
+     ["/:event-id" :event]]
     ["/about" :about]]))
 
 (defn path-for [route & [params]]
@@ -29,18 +30,22 @@
 (defn home-page []
   (fn []
     [:span.main
-     [:h1 "Welcome to the-offsite-rule"]
-     [:ul
-      [:li [:a {:href (path-for :new)} "Find location"]]
-      [:li [:a {:href (path-for :about)} "About us"]]
-      ]]))
+     [:h1 "The items of {{name}}"]
+     [:ul (map (fn [event-id]
+                 [:li {:name (str "event-" event-id) :key (str "event-" event-id)}
+                  [:a {:href (path-for :event {:event-id event-id})} "Item: " event-id]])
+               (range 1 10))]]))
 
-(defn new-run-page []
-  (fn []
-    [:span.main
-     [:h1 "Enter people and postcodes"]
-     (form/postcode-entry-form)
-     [:a {:href (path-for :results)} "Get results"]]))
+
+(defn edit-page []
+  (edit/pag(edit/page)e))
+
+;;(defn new-run-page []
+  ;;(fn []
+    ;;[:span.main
+     ;;[:h1 "Enter people and postcodes"]
+     ;;(edit/postcode-entry-form)
+     ;;[:a {:href (path-for :results)} "Get results"]]))
 
 
 (defn results-page []
@@ -73,7 +78,7 @@
     :index #'home-page
     :about #'about-page
     :results #'results-page
-    :new #'new-run-page
+    :event #'edit-page
     ))
 
 

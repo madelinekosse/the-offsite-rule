@@ -5,7 +5,7 @@
    [ring.middleware.json :as json]
    [ring.util.response :refer [response]]
    [the-offsite-rule.middleware :refer [middleware]]
-   [the-offsite-rule.db :as db]
+   [the-offsite-rule.api.api :as api]
    [hiccup.page :refer [include-js include-css html5]]
    [config.core :refer [env]]
    [clojure.walk :refer :all]
@@ -38,27 +38,55 @@
    :headers {"Content-Type" "text/html"}
    :body (loading-page)})
 
-
-(defn api-handler
+(defn get-event-handler
   [_request]
-  (let [data (-> _request
-                 :form-params
-                 keywordize-keys
-                 :people
-                 edn/read-string)]
-    (db/store-input-locations data 1);; TODO: implement event ids
-    {:status 200
-     :headers {"Content-Type" "application/json"}
-     :body "{\"a\": \"B\"}"}))
+  (spit "request.txt" _request)
+  {:status 200
+   :headers {"Content-Type" "application/json"}
+   :body "{\"a\": \"B\"}"})
+
+(defn- extract-params [_request] ;;TODO eventually we want this to return body also
+  (->> _request
+       :params
+       (reduce-kv
+        (fn[m k v]
+          (assoc m (keyword k) (edn/read-string v)))
+        {})))
+
+(defn- error-response [message]
+  {:status 400
+   :headers {}
+   :body message})
+
+(defn- success-response [result]
+  {:status 200
+   :headers {"Content-Type" "application/json"}
+   :body result})
+
+(defn api-handler [operation request]
+  (let [params (extract-params request)
+        result (case operation
+                 :save-event-data (api/save-event-data! params)
+                 :get-event-data  (api/get-event-data params)
+                 {:error (str "No handler registered for " operation)})]
+    (if (:error result)
+      (error-response (:error result))
+      (success-response result))))
 
 (def app
   (reitit-ring/ring-handler
    (reitit-ring/router
     [["/" {:get {:handler index-handler}}]
      ["/results" {:get {:handler index-handler}}]
-     ["/new" {:get {:handler index-handler}}]
+     ["/edit"
+      ["/:event-id" {:get {:handler index-handler
+                           :parameters {:path {:event-id int?}}}}]]
      ["/about" {:get {:handler index-handler}}]
-     ["/api" ["/save" {:post {:handler api-handler}}]]])
+     ["/api"
+      ["/save" {:post {:handler (partial api-handler :save-event-data)}}]
+      ["/event" {:get {:handler (partial api-handler :get-event-data)
+                       :parameters {:query-params {:event-id int?}}}}]]])
+
    (reitit-ring/routes
     (reitit-ring/create-resource-handler {:path "/" :root "/public"})
     (reitit-ring/create-default-handler))

@@ -1,6 +1,9 @@
-(ns the-offsite-rule.form
+(ns the-offsite-rule.edit
+  (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [reagent.core :as reagent :refer [atom]]
-            [cljs-http.client :as http]))
+            [cljs-http.client :as http]
+            [reagent.session :as session]
+            [cljs.core.async :refer [<!]]))
 
 (defonce people (atom []))
 
@@ -49,21 +52,35 @@
                     (swap! people #(add-person person %)))}]]]))
 
 (defn table []
-  (let [rows @people]
+  (fn[]
+    (let [rows @people]
     [:table
      [:tr
       [:th "Name"]
       [:th "Postcode"]]
      (for [row (reverse rows)]
        (table-row row))
-     (submission-row)]))
+     (submission-row)])))
 
-(defn submit-people [people]
-  (http/post "/api/save" {:form-params {:people (prn-str @people)}}))
+(defn submit-people [people event-id]
+  (http/post "/api/save" {:form-params {:people (prn-str @people) :event-id event-id}}))
 
-(defn postcode-entry-form []
-    [:div
-     (table)
-     [:input {:type :button
-              :value :submit
-              :on-click #(submit-people people)}]])
+(defn update-people [event-id]
+  (go (let [response (<! (http/get "/api/event"
+                                   {:query-params {:event-id event-id}}))]
+        (prn response)
+        (reset! people (get-in response [:body :result])))))
+
+(defn page []
+  (fn []
+      (let [routing-data (session/get :route)
+            event-id (get-in routing-data [:route-params :event-id])]
+        (do
+          (update-people event-id)
+          [:span.main
+           [:h1 (str "Event " event-id)]
+           [:div
+            [table]
+            [:input {:type :button
+                     :value :submit
+                     :on-click #(submit-people people event-id)}]]]))))

@@ -6,6 +6,7 @@
    [ring.middleware.params :refer [wrap-params]]
    [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
    [ring.middleware.keyword-params :refer [wrap-keyword-params]]
+   [ring.middleware.json :refer [wrap-json-response wrap-json-body]]
    ))
 
 (def middleware
@@ -13,4 +14,6 @@
    wrap-exceptions
    wrap-params
    wrap-keyword-params
-   wrap-reload])
+   wrap-reload
+   wrap-json-response
+   wrap-json-body])
