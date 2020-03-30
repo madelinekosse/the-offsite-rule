@@ -7,6 +7,7 @@
 
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [cljs-http "0.1.46"]
+                 [clj-time "0.15.2"]
                  [ring-server "0.5.0"]
                  [reagent "0.9.0-rc3"]
                  [reagent-utils "0.3.3"]
@@ -22,7 +23,7 @@
                   :exclusions [org.clojure/tools.reader]]
                  [org.clojure/java.jdbc "0.7.8"]
                  [org.xerial/sqlite-jdbc "3.23.1"]]
-
+  :test-paths ["test/clj"]
   :plugins [[lein-environ "1.1.0"]
             [lein-cljsbuild "1.1.7"]
             [lein-asset-minifier "0.4.6"
