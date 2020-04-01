@@ -9,10 +9,12 @@
                                    ::location/location]
                              :opt [::journey/route]))
 
-(s/def ::participants (s/coll-of ::participant))
+(s/def ::participants (s/every ::participant))
+
+(s/def ::time inst?)
 
 (s/def ::event (s/keys :req [::participants
-                             ::time inst?]))
+                             ::time]))
 
 (defn participant [name postcode postcode-converter]
   {::name name

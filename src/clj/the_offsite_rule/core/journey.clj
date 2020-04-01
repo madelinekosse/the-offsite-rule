@@ -1,22 +1,24 @@
 (ns the-offsite-rule.core.journey
   (:require [clojure.spec.alpha :as s]
             [clj-time.core :as t]
-            [the-offsite-rule.core [location :as location]]))
+            [the-offsite-rule.core
+             [leg :as leg]]))
 
-(s/def ::transport-type #{"train", "bus", "walk", "wait", "taxi"})
+(s/def ::duration-minutes (s/and int? pos?))
 
-(s/def ::leg (s/keys :req [::start-location (s/valid? ::location)
-                         ::end-location (s/valid? ::location)
-                         ::transport-type
-                         ::start-time inst?
-                         ::end-time inst?]))
+(defn- time-goes-forwards? [route]
+  (let [times (->> route
+                   (mapv (fn [l] [(::leg/start-time l) (::leg/end-time l)]))
+                   flatten)]
+    (= (sort times) times)))
 
-(s/def ::route (s/coll-of ::leg))
+(s/def ::route (s/and (s/every ::leg/leg)
+                      time-goes-forwards?))
 
 (defn total-time-minutes [route]
   {:pre [(s/valid? ::route route)]
-   :post [(s/valid? int? %)]}
-  (let [start (::start-time (first route))
-        end (::end-time (last route))]
+   :post [(s/valid? ::duration-minutes %)]}
+  (let [start (::leg/start-time (first route))
+        end (::leg/end-time (last route))]
     (t/in-minutes
      (t/interval start end))))
