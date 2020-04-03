@@ -7,7 +7,11 @@
 
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [cljs-http "0.1.46"]
+                 [clj-http "3.10.0"]
                  [clj-time "0.15.2"]
+                 [org.clojure/math.numeric-tower "0.0.4"]
+                 [org.clojure/data.csv "0.1.2"]
+                 [cheshire "5.10.0"]
                  [ring-server "0.5.0"]
                  [reagent "0.9.0-rc3"]
                  [reagent-utils "0.3.3"]

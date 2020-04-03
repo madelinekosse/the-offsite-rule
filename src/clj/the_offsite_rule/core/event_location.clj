@@ -14,7 +14,7 @@
        (every? some?)))
 
 (s/def ::event (s/and (s/merge ::event/event
-                               (s/keys :req [::total-travel-minutes]))
+                               (s/keys :req [::total-travel-minutes ::location/location]))
                       route-for-all?))
 
 (defprotocol RouteFinder
@@ -59,4 +59,5 @@
    :post [(s/valid? ::event %)]}
   (-> event
       (add-routes-to-event location route-finder)
-      add-total-travel-time))
+      add-total-travel-time
+      (assoc ::location/location location)))

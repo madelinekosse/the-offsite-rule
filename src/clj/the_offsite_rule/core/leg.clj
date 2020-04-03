@@ -6,7 +6,19 @@
 
 (s/def ::start-location #(s/valid? ::l/location %))
 (s/def ::end-location #(s/valid? ::l/location %))
-(s/def ::transport-type #{"train", "bus", "walk", "wait", "taxi"})
+(s/def ::transport-type #{"train"
+                          "bus"
+                          "walk"
+                          "high speed train"
+                          "underground"
+                          "ferry"
+                          "light rail"
+                          "furnicular"
+                          "cable car"
+                          "coach"
+                          "monorail"
+                          "plane"
+                          "taxi/drive"})
 (s/def ::start-time inst?)
 (s/def ::end-time inst?)
 

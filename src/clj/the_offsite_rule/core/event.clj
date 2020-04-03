@@ -26,3 +26,11 @@
    :post [(s/valid? ::event %)]}
   {::time time
    ::participants participants})
+
+(defn midpoint [event]
+  {:pre [(s/valid? ::event event)]
+   :post [(s/valid? ::location/coordinates %)]}
+  (->> event
+       ::participants
+       (map ::location/location)
+       (location/center)))
