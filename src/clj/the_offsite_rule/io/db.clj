@@ -1,6 +1,8 @@
 (ns the-offsite-rule.io.db
   (:require
-   [clojure.java.jdbc :as j]))
+   [the-offsite-rule.api.user :refer [EventGetter]]
+   [clojure.java.jdbc :as j]
+   [clj-time.core :as t]))
 
 ;;TODO: get rid of the result/error keyreturn and just return nil on error?
 
@@ -40,11 +42,18 @@
                ;;not))
    ;;event-id))
 
-(defn store-input-locations [inputs event-id]
+(defn- store-input-locations [inputs event-id]
   (try-catch-return-exception -update-event-inputs inputs event-id))
 
-(defn fetch-event-inputs [event-id]
+(defn- fetch-event-inputs [event-id]
   (try-catch-return-exception fetch-people-rows event-id))
 
-(defn fetch-user-events [user-id]
+(defn- fetch-user-events [user-id]
   (try-catch-return-exception fetch-user-event-rows user-id))
+
+(defrecord EventRepository [user-id]
+  EventGetter
+  (fetch-all-event-ids [self] (fetch-user-events user-id))
+  (fetch-event-participants-by-id [self event-id] (fetch-event-inputs event-id))
+  (fetch-event-time [self event-id] (t/date-time 2021 1 1 9 30)) ;;TODO implement in db
+  (update-event-people [self event-id people] (store-input-locations people event-id)))
