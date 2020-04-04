@@ -5,6 +5,7 @@
              [location :as location]
              [journey :as journey]]))
 
+;;TODO: event/name is event name, something else for pariticipant name
 (s/def ::participant (s/keys :req [::name string?
                                    ::location/location]
                              :opt [::journey/route]))
@@ -18,7 +19,7 @@
 
 (defn participant [name postcode postcode-converter]
   {::name name
-   ::location/location (location/from-postcode postcode)})
+   ::location/location (location/from-postcode postcode postcode-converter)})
 
 (defn event [time participants]
   {:pre [(s/valid? inst? time)

@@ -1,12 +1,16 @@
 (ns the-offsite-rule.core.location-test
   (:require [the-offsite-rule.core.location :refer [LocationConverter] :as sut]
-            [clojure.test :refer :all]))
+            [the-offsite-rule.io.mocks :as io]
+            [clojure.test :refer :all]
+            [the-offsite-rule.core.location :as location]))
 
-(defrecord MockLocationConverter [lat lng]
-  LocationConverter
-  (postcode-coordinates [this postcode] {::sut/latitude lat ::sut/longitude lng}))
 
-(def zero-converter (->MockLocationConverter 0.0 0.0))
+(def sample-postcode-map
+  {"N4 3LR" [51.56712 -0.11773]})
+
+(def converter (io/->MockLocationConverter sample-postcode-map))
+
+(satisfies? LocationConverter converter)
 
 (deftest test-new-from-coordinates
   (let [expected {::sut/coordinates {::sut/latitude 90.0
@@ -16,13 +20,14 @@
              (sut/from-coordinates 90 0))))))
 
 (deftest test-new-from-postcode
-  (let [expected (assoc
-                  (sut/from-coordinates 0 0)
-                  ::sut/postcode
-                  "N4 3LR")]
+  (let [result (sut/from-postcode "N4 3LR" converter)]
     (testing "Coordinates added using converter"
-      (is (= expected
-             (sut/from-postcode "N4 3LR" zero-converter))))))
+      (is (= {::sut/latitude 51.56712
+              ::sut/longitude -0.11773}
+             (::sut/coordinates result))))
+    (testing "Postcode is included"
+      (is (= "N4 3LR"
+             (::sut/postcode result))))))
 
 (deftest test-center
   (let [inputs [(sut/from-coordinates -10 0)

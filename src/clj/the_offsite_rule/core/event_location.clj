@@ -26,12 +26,10 @@
          (s/valid? inst? arrival-time)]
    :post [(s/valid? ::event/participant %)
           (contains? % ::journey/route)]} ;;maybe dont need this now we have spec
-  (let [participant-coordinates (get-in participant [::location/location ::location/coordinates])
-        destination-coordinates (::location/coordinates destination)]
-    (assoc participant ::journey/route (route route-finder
-                                              participant-coordinates
-                                              destination-coordinates
-                                              arrival-time))))
+  (assoc participant ::journey/route (route route-finder
+                                            (::location/location participant)
+                                            destination
+                                            arrival-time)))
 
 (defn- add-all-routes [participants destination arrival-time route-finder]
   (map (fn[p] (add-route-to-participant p destination arrival-time route-finder)) participants))

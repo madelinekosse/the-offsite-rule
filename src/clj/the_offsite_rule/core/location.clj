@@ -28,7 +28,8 @@
 (defn from-postcode [postcode converter]
   {:pre [(s/valid? ::postcode postcode)
          (satisfies? LocationConverter converter)]
-   :post [(s/valid? ::location %)]}
+   :post [(s/valid? ::location %)]
+   }
   {::postcode postcode
    ::coordinates (postcode-coordinates converter postcode)})
 
