@@ -2,7 +2,7 @@
   (:require
    [the-offsite-rule.api.user :refer [EventGetter]]
    [clojure.java.jdbc :as j]
-   [clj-time.core :as t]))
+   [clj-time.coerce :as ct]))
 
 ;;TODO: get rid of the result/error keyreturn and just return nil on error?
 
@@ -28,10 +28,38 @@
   (j/query db ["SELECT * FROM event WHERE event_id = ?" event-id]))
 
 (defn- fetch-user-event-rows [user-id]
-  (j/query db ["SELECT event_id, event_name FROM event WHERE user_id = ?" user-id]))
+  (j/query db ["SELECT event_id, datetime('event_name'), time FROM event WHERE user_id = ?" user-id]))
 
 (defn- fetch-people-rows [event-id]
   (j/query db ["SELECT name, postcode FROM person WHERE event_id = ?" event-id]))
+
+(defn- next-id [current-max]
+  (if (nil? current-max)
+    0
+    (inc current-max)))
+
+(defn- next-valid-event-id []
+  (let [rows (do (j/query db ["SELECT MAX(event_id) AS max FROM event"]))]
+  (-> rows
+      first
+      :max
+      next-id)))
+
+(defn- add-event-row [user-id event-id event-name event-time]
+  (j/insert! db :event {:event_id event-id
+                        :event_name event-name
+                        :time (str event-time)
+                         :user_id user-id}))
+
+(defn- new-event [user-id event-name event-time]
+  (let [event-id (next-valid-event-id)
+        result (try-catch-return-exception add-event-row user-id
+                                           event-id
+                                           event-name
+                                           event-time)]
+    (if (:error result)
+      result
+      {:result event-id})))
 
 ;; this could also look at the user id
 ;;(defn valid-event? [event-id]
@@ -51,9 +79,20 @@
 (defn- fetch-user-events [user-id]
   (try-catch-return-exception fetch-user-event-rows user-id))
 
+(defn- fetch-event-time [event-id]
+  (let [res (try-catch-return-exception fetch-event-rows event-id)]
+    (if (:error res)
+      res
+      (-> res
+          :result
+          first
+          :time
+          (ct/from-string)))))
+
 (defrecord EventRepository [user-id]
   EventGetter
   (fetch-all-event-ids [self] (fetch-user-events user-id))
   (fetch-event-participants-by-id [self event-id] (fetch-event-inputs event-id))
-  (fetch-event-time [self event-id] (t/date-time 2021 1 1 9 30)) ;;TODO implement in db
+  (fetch-event-time [self event-id] (fetch-event-time event-id))
+  (create-new-event [self event-name event-time] (new-event user-id event-name event-time))
   (update-event-people [self event-id people] (store-input-locations people event-id)))

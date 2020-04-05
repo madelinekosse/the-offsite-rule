@@ -1,25 +1,24 @@
 (ns the-offsite-rule.api.api
-  (:require
-   [the-offsite-rule.db :as db]))
+  )
 
 
-(defn get-locations-for [{:keys [event-id]}]
+(defn get-locations-for [{:keys [event-id user-id]}]
   "returns a sorted list of event-locations")
 
-(defn get-event-participants [{:keys [event-id]}]
-  "Returns een participants as name/postcode map")
+(defn get-event-participants [{:keys [event-id user-id]}]
+  "Returns event participants as name/postcode map")
 
 (defn get-event-ids [{:keys [user-id]}]
   "Return a list of event IDs for the user")
 
-(defn save-event-participants [{:keys [people event-id]}]
+(defn save-event-participants [{:keys [people event-id user-id]}]
   "update event with new participants, returning nil or error map")
 
 ;;TODO add time to event db
-(defn update-event-time [{:keys [time event-id]}]
+(defn update-event-time [{:keys [time event-id user-id]}]
   "Update the event date and time")
 
-(defn new-event [{:keys [name time]}]
+(defn new-event [{:keys [name time user-id]}]
   "Create a new event with given name and time, returning the new event ID")
 
 ;;TODO: server and client seperate errors

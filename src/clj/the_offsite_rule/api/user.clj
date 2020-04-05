@@ -9,7 +9,8 @@
 (defprotocol EventGetter
   (fetch-all-event-ids [self] "Return all event names and IDs for the user")
   (fetch-event-participants-by-id [self event-id] "Return the event participants with this ID")
-  (fetch-event-time [self event-id] "Returns the event time as a clj-time/date-time")
+  (fetch-event-time [self event-id] "Return the time for event as datetime")
+  (create-new-event [self event-name event-time] "Return the ID of created event")
   (update-event-people [self event-id people] "Save people as this event"))
 
 (defn events [getter]
