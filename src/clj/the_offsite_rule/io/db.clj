@@ -12,12 +12,7 @@
    :subname     "/home/mk-gsa/the-offsite-rule/the-offsite-rule"})
 
 
-(defn- try-catch-return-exception [f & args]
-  (try {:result (apply f args)}
-       (catch Exception e
-         {:error (.getMessage e)})))
-
-(defn- -update-event-inputs [data event-id]
+(defn- update-event-inputs [data event-id]
   (do (j/delete! db :person ["event_id = ?" event-id])  ;;TODO: don't do this if write fails
       (->> data
            (map #(assoc % :event_id event-id))
@@ -27,10 +22,10 @@
 (defn- fetch-event-rows [event-id]
   (j/query db ["SELECT * FROM event WHERE event_id = ?" event-id]))
 
-(defn- fetch-user-event-rows [user-id]
+(defn- fetch-user-events [user-id]
   (j/query db ["SELECT event_id, datetime('event_name'), time FROM event WHERE user_id = ?" user-id]))
 
-(defn- fetch-people-rows [event-id]
+(defn- fetch-event-people [event-id]
   (j/query db ["SELECT name, postcode FROM person WHERE event_id = ?" event-id]))
 
 (defn- next-id [current-max]
@@ -52,47 +47,24 @@
                          :user_id user-id}))
 
 (defn- new-event [user-id event-name event-time]
-  (let [event-id (next-valid-event-id)
-        result (try-catch-return-exception add-event-row user-id
-                                           event-id
-                                           event-name
-                                           event-time)]
-    (if (:error result)
-      result
-      {:result event-id})))
-
-;; this could also look at the user id
-;;(defn valid-event? [event-id]
-  ;;(try-catch-return-exception
-   ;;(fn[id] (-> event-id
-               ;;fetch-event-rows
-               ;;empty?
-               ;;not))
-   ;;event-id))
-
-(defn- store-input-locations [inputs event-id]
-  (try-catch-return-exception -update-event-inputs inputs event-id))
-
-(defn- fetch-event-inputs [event-id]
-  (try-catch-return-exception fetch-people-rows event-id))
-
-(defn- fetch-user-events [user-id]
-  (try-catch-return-exception fetch-user-event-rows user-id))
+  (let [event-id (next-valid-event-id)]
+    (add-event-row user-id
+                   event-id
+                   event-name
+                   event-time)
+    event-id))
 
 (defn- fetch-event-time [event-id]
-  (let [res (try-catch-return-exception fetch-event-rows event-id)]
-    (if (:error res)
-      res
-      (-> res
-          :result
-          first
-          :time
-          (ct/from-string)))))
+  (let [res (fetch-event-rows event-id)]
+    (-> res
+        first
+        :time
+        (ct/from-string))))
 
 (defrecord EventRepository [user-id]
   EventGetter
   (fetch-all-event-ids [self] (fetch-user-events user-id))
-  (fetch-event-participants-by-id [self event-id] (fetch-event-inputs event-id))
+  (fetch-event-participants-by-id [self event-id] (fetch-event-people event-id))
   (fetch-event-time [self event-id] (fetch-event-time event-id))
   (create-new-event [self event-name event-time] (new-event user-id event-name event-time))
-  (update-event-people [self event-id people] (store-input-locations people event-id)))
+  (update-event-people [self event-id people] (update-event-inputs people event-id)))

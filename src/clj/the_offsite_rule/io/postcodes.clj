@@ -12,8 +12,8 @@
 (defn- to-map [row]
   (let [postcode (get row "query")
         result (get row "result")]
-    {postcode {::location/coordinates {::location/latitude (get result "latitude")
-                                       ::location/longitude (get result "longitude")}}}))
+    {postcode {::location/latitude (get result "latitude")
+               ::location/longitude (get result "longitude")}}))
 
 ;;TODO: handle error response
 (defn- query [postcodes]

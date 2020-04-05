@@ -1,5 +1,14 @@
 (ns the-offsite-rule.api.api
-  )
+  (:require [the-offsite-rule.api
+             [event :as event]
+             [user :as user]]
+            [the-offsite-rule.io
+             [db :as db]
+             [postcodes :as postcodes]]
+            [clj-time.core :as t])) ;;testing only
+
+;;TODO: stop hard coding this and pass through
+(def user-1-repo (db/->EventRepository 1))
 
 
 (defn get-locations-for [{:keys [event-id user-id]}]
@@ -11,15 +20,23 @@
 (defn get-event-ids [{:keys [user-id]}]
   "Return a list of event IDs for the user")
 
-(defn save-event-participants [{:keys [people event-id user-id]}]
-  "update event with new participants, returning nil or error map")
+;;TODO: save the whole event in event namespace, minimise user ns
 
-;;TODO add time to event db
+(defn save-event-participants [{:keys [people event-id user-id]}]
+  "update event with new participants, returning nil or error map"
+  (let [state (event/event-state event-id user-1-repo)
+        new-event (event/update-participants people state)]
+    (event/save state user-1-repo)))
+
+;;TODO add backend for this or do it as part of the save
 (defn update-event-time [{:keys [time event-id user-id]}]
   "Update the event date and time")
 
+;; is it ok that these two functions don't create an event?
 (defn new-event [{:keys [name time user-id]}]
-  "Create a new event with given name and time, returning the new event ID")
+  "Create a new event with given name and time, returning the new event ID"
+  (let [event-repo (db/->EventRepository user-id)]
+    (user/new-event name time event-repo)))
 
 ;;TODO: server and client seperate errors
 ;;TODO: move all of this out somewhere else (its db specific)

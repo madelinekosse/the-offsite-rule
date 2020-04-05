@@ -82,10 +82,6 @@
       (get "Sec")
       parse-connection-list))
 
-(get-route (location/from-coordinates 51.566960 -0.117550)
-           (location/from-coordinates 51.537430 -0.125250)
-           (t/date-time 2020 10 10 9 50))
-
 (defrecord Finder []
     RouteFinder
   (route [self from to arrival-time]

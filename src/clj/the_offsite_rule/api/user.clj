@@ -5,7 +5,7 @@
             [clojure.spec.alpha :as s]))
 
 ;; TODO: implement seperate users
-;;TODO: this needs a time setter
+;;TODO: test this
 (defprotocol EventGetter
   (fetch-all-event-ids [self] "Return all event names and IDs for the user")
   (fetch-event-participants-by-id [self event-id] "Return the event participants with this ID")
@@ -16,6 +16,11 @@
 (defn events [getter]
   {:pre [(satisfies? EventGetter getter)]}
   (fetch-all-event-ids getter))
+
+(defn postcodes-for-event [getter event-id]
+  (let [participants (fetch-event-participants-by-id getter event-id)]
+    (->> participants
+         (map :postcode))))
 
 (defn- make-participant [postcode-converter {:keys [name postcode]}]
   "From a :name :postcode pair and converter, return participant"
@@ -42,3 +47,6 @@
   (->> event
        event->postcode-list
        (update-event-people event-getter event-id)))
+
+(defn new-event [name time event-getter]
+  (create-new-event event-getter name time))
