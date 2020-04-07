@@ -16,7 +16,9 @@
 
 (s/def ::coordinates (s/keys :req [::latitude
                                    ::longitude]))
-(s/def ::name string?)
+
+(s/def ::name (fn [n] (or (string? n)
+                          (nil? n))))
 
 (s/def ::location (s/keys :req [::coordinates]
                                  :opt [::name

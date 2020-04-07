@@ -48,7 +48,7 @@
   (let [transport-mode (get connection "mode")
         dep-loc (parse-waypoint (get connection "Dep"))
         arr-loc (parse-waypoint (get connection "Arr"))]
-    #:leg{:start-time (:time dep-loc)
+    #::leg{:start-time (:time dep-loc)
           :end-time (:time arr-loc)
           :start-location (:location dep-loc)
           :end-location (:location arr-loc)
@@ -88,6 +88,6 @@
     {:pre [(s/valid? ::location/location from)
            (s/valid? ::location/location to)
            (s/valid? inst? arrival-time)]
-     ;;:post [(s/valid? ::journey/route %)]
+     ;:post [(s/valid? ::journey/route %)]
      }
     (get-route from to arrival-time)))

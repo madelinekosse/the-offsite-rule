@@ -3,7 +3,8 @@
             [the-offsite-rule.core
              [event :as event]
              [journey :as journey]
-             [location :as location]]))
+             [location :as location]]
+            [the-offsite-rule.core.leg :as leg]))
 
 (s/def ::total-travel-minutes #(s/valid? ::journey/duration-minutes %))
 
@@ -20,19 +21,18 @@
 (defprotocol RouteFinder
   (route [_ from to arrival-time] "returns fastest route from one location to another arriving by given time"))
 
-(defn- add-route-to-participant [participant destination arrival-time route-finder]
-  {:pre [(s/valid? ::event/participant participant)
-         (s/valid? ::location/location destination)
-         (s/valid? inst? arrival-time)]
-   :post [(s/valid? ::event/participant %)
-          (contains? % ::journey/route)]} ;;maybe dont need this now we have spec
-  (assoc participant ::journey/route (route route-finder
-                                            (::location/location participant)
-                                            destination
-                                            arrival-time)))
+(defn- add-duration-to-route [route]
+  (assoc route ::journey/duration-minutes (journey/total-time-minutes route)))
 
-(defn- add-all-routes [participants destination arrival-time route-finder]
-  (map (fn[p] (add-route-to-participant p destination arrival-time route-finder)) participants))
+(defn- add-route-to-participant [participant destination arrival-time route-finder]
+  {:pre [(s/valid? ::location/location destination)
+         (s/valid? inst? arrival-time)]
+   :post [(contains? % ::journey/route)]} ;;maybe dont need this now we have spec
+  (let [route (route route-finder
+                     (::location/location participant)
+                     destination
+                     arrival-time)]
+    (assoc participant ::journey/route route)))
 
 (defn- add-routes-to-event [event location route-finder]
   (update event
@@ -42,13 +42,19 @@
           (::event/time event)
           route-finder))
 
-(defn- add-total-travel-time [route]
-  (let [mins (->> route
+(defn- travel-time-for [participant]
+  (let [legs (::journey/route participant)]
+    (println "spec not valid")
+    (println (s/explain-data ::journey/route legs))
+    (journey/total-time-minutes legs)))
+
+(defn- add-total-travel-time [event-location]
+  (let [mins (->> event-location
                   ::event/participants
-                  (map ::journey/route)
-                  (map journey/total-time-minutes)
-                  (apply +))]
-    (assoc route ::total-travel-minutes mins)))
+                  (map travel-time-for)
+                  (apply +)
+                  )]
+    (assoc event-location ::total-travel-minutes mins)))
 
 (defn add-routes [event location route-finder]
   {:pre [(s/valid? ::event/event event)

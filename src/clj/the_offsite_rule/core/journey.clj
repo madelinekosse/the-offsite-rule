@@ -12,7 +12,7 @@
                    flatten)]
     (= (sort times) times)))
 
-(s/def ::route (s/and (s/every ::leg/leg)
+(s/def ::route (s/and (s/coll-of ::leg/leg)
                       time-goes-forwards?))
 
 (defn total-time-minutes [route]

@@ -1,10 +1,9 @@
 (ns the-offsite-rule.io.db
   (:require
-   [the-offsite-rule.api.user :refer [EventGetter]]
+   [the-offsite-rule.api.event :refer [EventGetter]]
    [clojure.java.jdbc :as j]
    [clj-time.coerce :as ct]))
 
-;;TODO: get rid of the result/error keyreturn and just return nil on error?
 
 (def db
   {:classname   "org.sqlite.JDBC"
@@ -23,7 +22,7 @@
   (j/query db ["SELECT * FROM event WHERE event_id = ?" event-id]))
 
 (defn- fetch-user-events [user-id]
-  (j/query db ["SELECT event_id, datetime('event_name'), time FROM event WHERE user_id = ?" user-id]))
+  (j/query db ["SELECT event_id, event_name, time FROM event WHERE user_id = ?" user-id]))
 
 (defn- fetch-event-people [event-id]
   (j/query db ["SELECT name, postcode FROM person WHERE event_id = ?" event-id]))
@@ -54,17 +53,15 @@
                    event-time)
     event-id))
 
-(defn- fetch-event-time [event-id]
-  (let [res (fetch-event-rows event-id)]
-    (-> res
-        first
-        :time
-        (ct/from-string))))
+(defn- fetch-event-details [event-id]
+  (let [res (first (fetch-event-rows event-id))]
+    (assoc res :time (ct/from-string (:time res)))))
+
 
 (defrecord EventRepository [user-id]
   EventGetter
-  (fetch-all-event-ids [self] (fetch-user-events user-id))
-  (fetch-event-participants-by-id [self event-id] (fetch-event-people event-id))
-  (fetch-event-time [self event-id] (fetch-event-time event-id))
+  (fetch-all-events [self] (fetch-user-events user-id))
+  (fetch-event-participants [self event-id] (fetch-event-people event-id))
+  (fetch-event [self event-id] (fetch-event-details event-id))
   (create-new-event [self event-name event-time] (new-event user-id event-name event-time))
   (update-event-people [self event-id people] (update-event-inputs people event-id)))

@@ -3,30 +3,30 @@
             [clj-time.core :as t]
             [the-offsite-rule.core
              [location :as location]
-             [journey :as journey]]))
+             [participant :as participant]]))
 
-;;TODO: event/name is event name, something else for pariticipant name
-(s/def ::participant (s/keys :req [::name string?
-                                   ::location/location]
-                             :opt [::journey/route]))
-
-(s/def ::participants (s/every ::participant))
+(s/def ::participants (s/every ::participant/participant))
 
 (s/def ::time inst?)
 
+(s/def ::name string?)
+
+(s/def ::id int?)
+
 (s/def ::event (s/keys :req [::participants
-                             ::time]))
+                             ::time
+                             ::id
+                             ::name]))
 
-(defn participant [name postcode postcode-converter]
-  {::name name
-   ::location/location (location/from-postcode postcode postcode-converter)})
-
-(defn event [time participants]
+(defn event [id name time participants]
   {:pre [(s/valid? inst? time)
          (s/valid? ::participants participants)]
-   :post [(s/valid? ::event %)]}
+                                        ;:post [(s/valid? ::event %)]
+   }
   {::time time
-   ::participants participants})
+   ::participants participants
+   ::name name
+   ::id id})
 
 (defn midpoint [event]
   {:pre [(s/valid? ::event event)]
