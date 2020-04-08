@@ -2,8 +2,8 @@
   (:require [clojure.spec.alpha :as s]
             [the-offsite-rule.core
              [location :as location]
-             [event :as event]
-             [event-location :refer [RouteFinder]:as candidate]]))
+             [event :as event]]
+            [the-offsite-rule.core.event-location :refer [RouteFinder]:as candidate]))
 
 (defprotocol CityFinder
   (locations [_] "Return a list of all possible locations"))
@@ -25,14 +25,29 @@
          (sort-by :distance)
          (map (fn [l] (dissoc l :distance))))))
 
-;;TODO: converge when routes stop getting shorter not just at cutoff point
-(defn candidate-events [event locations route-finder]
-  (let [locations (take 10 locations)]
-    (->> locations
-         (map (fn [l] (candidate/add-routes event l route-finder))
-              )
-         (sort-by ::candidate/total-travel-minutes))))
+(defn candidate-events [sorted-locations event route-finder]
+  (loop [results []
+         location-index 0
+         shortest-time Long/MAX_VALUE
+         fail-streak-length 0]
+    (let [
+          next-location (nth sorted-locations location-index)
+          next-candidate (candidate/add-routes event next-location route-finder)
+          next-candidate-time (::candidate/total-travel-minutes next-candidate)]
+      (cond
+        (= location-index (dec (count sorted-locations))) (conj results next-candidate)
+        (< next-candidate-time shortest-time) (recur (conj results next-candidate)
+                                                     (inc location-index)
+                                                     next-candidate-time
+                                                     0)
+        (>= fail-streak-length 5) results
+        :else (recur (conj results next-candidate)
+                     (inc location-index)
+                     shortest-time
+                     (inc fail-streak-length))))))
 
 (defn best-locations [event city-finder route-finder]
-  (let [locations (get-potential-locations event city-finder)]
-    (candidate-events event locations route-finder)))
+  (let [results (-> event
+                    (get-potential-locations city-finder)
+                    (candidate-events event route-finder))]
+    (sort-by ::candidate/total-travel-minutes results)))

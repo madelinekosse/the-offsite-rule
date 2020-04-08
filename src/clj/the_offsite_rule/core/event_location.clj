@@ -47,16 +47,13 @@
 
 (defn- travel-time-for [participant]
   (let [legs (::journey/route participant)]
-    (println "spec not valid")
-    (println (s/explain-data ::journey/route legs))
     (journey/total-time-minutes legs)))
 
 (defn- add-total-travel-time [event-location]
   (let [mins (->> event-location
                   ::event/participants
                   (map travel-time-for)
-                  (apply +)
-                  )]
+                  (apply +))]
     (assoc event-location ::total-travel-minutes mins)))
 
 (defn add-routes [event location route-finder]
