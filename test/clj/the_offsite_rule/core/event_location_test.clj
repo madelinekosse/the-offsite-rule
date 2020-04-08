@@ -5,7 +5,8 @@
     [location :as location]
     [event :as event]
     [leg :as leg]
-    [journey :as journey]]
+    [journey :as journey]
+    [participant :as participant]]
    [the-offsite-rule.io.mocks :as io]
    [clj-time.core :as t]
    [clojure.test :refer :all]
@@ -13,13 +14,16 @@
 
 (def from-location (location/from-coordinates 0.0 0.0))
 (def to-location (location/from-coordinates 50.0 50.0))
-(def participant {::event/name "MK"
+(def participant {::participant/name "MK"
                   ::location/location from-location})
 
 (def start-time (t/date-time 2020 1 1 9))
 
-(def event (event/event start-time
+(def event (event/event 0
+                        "event 0"
+                        start-time
                         [participant]))
+
 (def route-finder (io/->MockRouteFinder from-location
                                         to-location
                                         start-time))

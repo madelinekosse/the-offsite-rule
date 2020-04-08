@@ -3,7 +3,9 @@
             [the-offsite-rule.io.mocks :as io]
             [clj-time.core :as t]
             [clojure.test :refer :all]
-            [the-offsite-rule.core.location :as location]
+            [the-offsite-rule.core
+             [location :as location]
+             [participant :as participant]]
             [clojure.spec.alpha :as s]))
 
 (def sample-postcode-map
@@ -13,25 +15,14 @@
 
 (def location-converter (io/->MockLocationConverter sample-postcode-map))
 
-(deftest test-participant-created
-  (let [result (sut/participant "mk"
-                                "W6 9DJ"
-                                location-converter)]
-    (testing "Correct name"
-      (is (= "mk"
-             (::sut/name result))))
-    (testing "Correct location"
-      (is (= #::location{:postcode "W6 9DJ"
-                         :coordinates #::location{:latitude 51.48984
-                                                  :longitude -0.23186}}
-             (::location/location result))))))
-
 (def sample-participants
-  [(sut/participant "MK" "N4 3LR" location-converter)
-   (sut/participant "DK" "W6 9DJ" location-converter)])
+  [(participant/participant "MK" "N4 3LR" location-converter)
+   (participant/participant "DK" "W6 9DJ" location-converter)])
 
 (deftest test-event-midpoint
-  (let [event (sut/event (t/date-time 2020 1 1 10 0)
+  (let [event (sut/event 0
+                         "event 0"
+                         (t/date-time 2020 1 1 10 0)
                           sample-participants)]
     (testing "correct midpoint of participants"
       (is (= #::location{:latitude 51.52848

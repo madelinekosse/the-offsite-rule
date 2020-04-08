@@ -5,7 +5,7 @@
              [location :as location]
              [participant :as participant]]))
 
-(s/def ::participants (s/every ::participant/participant))
+(s/def ::participants (s/coll-of ::participant/participant))
 
 (s/def ::time inst?)
 
@@ -21,8 +21,7 @@
 (defn event [id name time participants]
   {:pre [(s/valid? inst? time)
          (s/valid? ::participants participants)]
-                                        ;:post [(s/valid? ::event %)]
-   }
+   :post [(s/valid? ::event %)]}
   {::time time
    ::participants participants
    ::name name

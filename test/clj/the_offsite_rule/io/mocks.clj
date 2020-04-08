@@ -6,7 +6,7 @@
              [location :refer [LocationConverter] :as location]
              [event-location :refer [RouteFinder] :as event-location]
              [search :refer [CityFinder] :as search]]
-            [the-offsite-rule.api.user :refer [EventGetter] :as user]))
+            [the-offsite-rule.api.event :refer [EventGetter]]))
 
 
 (defrecord MockLocationConverter [postcode-map]

@@ -34,6 +34,9 @@
                      arrival-time)]
     (assoc participant ::journey/route route)))
 
+(defn- add-all-routes [participants destination arrival-time route-finder]
+  (map (fn[p] (add-route-to-participant p destination arrival-time route-finder)) participants))
+
 (defn- add-routes-to-event [event location route-finder]
   (update event
           ::event/participants
