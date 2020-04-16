@@ -1,7 +1,6 @@
 (ns the-offsite-rule.core.location
   (:require [clojure.spec.alpha :as s]
-            [clojure.math.numeric-tower :as math]
-            [the-offsite-rule.core.location :as location]))
+            [clojure.math.numeric-tower :as math]))
 
 (defn- postcode? [input]
   (re-matches #"[A-Z]{1,2}\d{1,2}\s\d[A-Z]{2}" input))

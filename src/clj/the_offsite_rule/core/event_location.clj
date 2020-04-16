@@ -3,8 +3,7 @@
             [the-offsite-rule.core
              [event :as event]
              [journey :as journey]
-             [location :as location]]
-            [the-offsite-rule.core.leg :as leg]))
+             [location :as location]]))
 
 (s/def ::total-travel-minutes #(s/valid? ::journey/duration-minutes %))
 

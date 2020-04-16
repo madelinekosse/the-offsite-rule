@@ -40,7 +40,6 @@
 
 (defn get-event-handler
   [_request]
-  (spit "request.txt" _request)
   {:status 200
    :headers {"Content-Type" "application/json"}
    :body "{\"a\": \"B\"}"})
@@ -66,8 +65,8 @@
 (defn api-handler [operation request]
   (let [params (extract-params request)
         result (case operation
-                 :save-event-data (api/save-event-data! params)
-                 :get-event-data  (api/get-event-data params)
+                 :save-event-data (api/save-event-participants params)
+                 :get-event-data  (api/get-event-participants params)
                  {:error (str "No handler registered for " operation)})]
     (if (:error result)
       (error-response (:error result))
