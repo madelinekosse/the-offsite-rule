@@ -38,7 +38,7 @@
 
 
 (defn edit-page []
-  (edit/pag(edit/page)e))
+  (edit/page))
 
 ;;(defn new-run-page []
   ;;(fn []
