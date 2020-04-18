@@ -1,6 +1,6 @@
 (ns the-offsite-rule.io.db
   (:require
-   [the-offsite-rule.api.event :refer [EventGetter]]
+   [the-offsite-rule.api.user :refer [EventGetter]]
    [clojure.java.jdbc :as j]
    [clj-time.coerce :as ct]))
 
@@ -34,16 +34,16 @@
 
 (defn- next-valid-event-id []
   (let [rows (do (j/query db ["SELECT MAX(event_id) AS max FROM event"]))]
-  (-> rows
-      first
-      :max
-      next-id)))
+    (-> rows
+        first
+        :max
+        next-id)))
 
 (defn- add-event-row [user-id event-id event-name event-time]
   (j/insert! db :event {:event_id event-id
                         :event_name event-name
                         :time (str event-time)
-                         :user_id user-id}))
+                        :user_id user-id}))
 
 (defn- new-event [user-id event-name event-time]
   (let [event-id (next-valid-event-id)]
@@ -57,10 +57,14 @@
   (let [res (first (fetch-event-rows event-id))]
     (assoc res :time (ct/from-string (:time res)))))
 
+(defn- fetch-all-event-details [user-id]
+  (let [res (fetch-user-events user-id)]
+    (map (fn[row] (assoc row :time (ct/from-string (:time row))))
+         res)))
 
 (defrecord EventRepository [user-id]
   EventGetter
-  (fetch-all-events [self] (fetch-user-events user-id))
+  (fetch-all-events [self] (fetch-all-event-details user-id))
   (fetch-event-participants [self event-id] (fetch-event-people event-id))
   (fetch-event [self event-id] (fetch-event-details event-id))
   (create-new-event [self event-name event-time] (new-event user-id event-name event-time))
