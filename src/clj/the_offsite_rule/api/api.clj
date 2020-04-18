@@ -6,6 +6,8 @@
              [db :as db]
              [postcodes :as postcodes]]))
 
+;;TODO: we shouldn't need to connect to the postcode api in order to get people for front end
+;; Maybe this is too abstracted and we should just use the user repo
 ;;TODO: stop hard coding this and pass through
 (def user-1-repo (db/->EventRepository 1))
 
