@@ -68,8 +68,7 @@
 (defn update-people [event-id]
   (go (let [response (<! (http/get "/api/event"
                                    {:query-params {:event-id event-id}}))]
-        (prn response)
-        (reset! people (get-in response [:body :result])))))
+        (reset! people (:body response)))))
 
 (defn page []
   (fn []

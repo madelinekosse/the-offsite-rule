@@ -32,12 +32,14 @@
 (defn save-event-participants [{:keys [people event-id user-id]}]
   "update event with new participants, returning nil or error map"
   (let [user-repo (db/->EventRepository user-id)]
-    (user/update-people user-repo
-                        event-id
-                        people)))
+    (-> (user/update-people user-repo
+                             event-id
+                             people)
+        (update :time str))))
 
+;;TODO should format time correctly
 (defn new-event [{:keys [name time user-id]}]
-  "Create a new event with given name and time, returning the new event ID"
+  "Create a new event with given name and time, returning the new event"
   (let [user-repo (db/->EventRepository user-id)]
     (user/new-event user-repo
                     name
