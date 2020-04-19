@@ -6,6 +6,7 @@
             [cljs.core.async :refer [<!]]))
 
 (defonce people (atom []))
+(defonce event (atom {}))
 (defonce error (atom nil))
 
 (defn remove-person [person people]
@@ -72,17 +73,11 @@
           (reset! error (:body response))
           (reset! error nil)))))
 
-;;(defn submit-people [people event-id]
-  ;;(let [response (http/post "/api/save" {:form-params {:people (prn-str @people) :event-id event-id}})
-        ;;_ (print "response")
-        ;;_ (print response)]
-    ;;(if (contains? (:body response) :error)
-      ;;(reset! error (get-in response [:body :error])))))
-
-(defn update-people [event-id]
+(defn update-event [event-id]
   (go (let [response (<! (http/get "/api/event"
                                    {:query-params {:event-id event-id}}))]
-        (reset! people (:body response)))))
+        (reset! people (get-in response [:body :event-participants]))
+        (reset! event (select-keys (:body response) [:name :time :id])))))
 
 (defn error-display []
   (fn[]
@@ -90,14 +85,21 @@
       (if (some? e)
         [:div e]))))
 
+(defn event-header []
+  (fn[]
+    (let [event-meta @event]
+      [:div
+       [:h1 (:name event-meta)]
+       [:h2 (:time event-meta)]])))
+
 (defn content []
   (fn[]
     (let [routing-data (session/get :route)
           event-id (get-in routing-data [:route-params :event-id])]
       (do
-        (update-people event-id)
+        (update-event event-id)
         [:span.main
-         [:h1 (str "Event " event-id)]
+         [event-header]
          [:div
           [table]
           [:input {:type :button
@@ -108,5 +110,6 @@
 (defn page []
   (fn []
     (reset! people [])
+    (reset! event {})
     (reset! error nil)
       [content]))

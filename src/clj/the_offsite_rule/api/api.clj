@@ -16,12 +16,13 @@
     (search/search-locations state)))
 
 
-(defn get-event-participants [{:keys [event-id user-id]}]
+(defn get-event [{:keys [event-id user-id]}]
   "Returns event participants as name/postcode map"
   (let [user-repo (db/->EventRepository user-id)]
     (-> user-repo
         (user/event event-id)
-        :event-participants)))
+        (update :time str)
+        )))
 
 (defn get-events [{:keys [user-id]}]
   "Return a list of events for the user"

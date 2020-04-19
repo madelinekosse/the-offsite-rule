@@ -66,7 +66,7 @@
   (let [params (extract-params request)
         result (case operation
                  :save-event-data (api/save-event-participants params)
-                 :get-event-data  (api/get-event-participants params)
+                 :get-event-data  (api/get-event params)
                  :get-all-events (api/get-events params)
                  {:error (str "No handler registered for " operation)})]
     (if (:error result)
