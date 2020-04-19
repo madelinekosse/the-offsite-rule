@@ -15,6 +15,7 @@
         state (event/state user-repo event-id)]
     (search/search-locations state)))
 
+
 (defn get-event-participants [{:keys [event-id user-id]}]
   "Returns event participants as name/postcode map"
   (let [user-repo (db/->EventRepository user-id)]
@@ -25,16 +26,18 @@
 (defn get-events [{:keys [user-id]}]
   "Return a list of events for the user"
   (let [user-repo (db/->EventRepository user-id)]
-    (user/events user-repo)))
+    (->> user-repo
+         user/events
+         (map (fn[e] (update e :time str))))));;TODO: split formatting part out to middleware
 
 
 ;;TODO: save the whole event in event namespace, including name and time changes
 (defn save-event-participants [{:keys [people event-id user-id]}]
   "update event with new participants, returning nil or error map"
   (let [user-repo (db/->EventRepository user-id)]
-    (-> (user/update-people user-repo
-                             event-id
-                             people)
+    (-> (user/maybe-update-people user-repo
+                                  event-id
+                                  people)
         (update :time str))))
 
 ;;TODO should format time correctly

@@ -67,6 +67,7 @@
         result (case operation
                  :save-event-data (api/save-event-participants params)
                  :get-event-data  (api/get-event-participants params)
+                 :get-all-events (api/get-events params)
                  {:error (str "No handler registered for " operation)})]
     (if (:error result)
       (error-response (:error result))
@@ -83,6 +84,8 @@
      ["/about" {:get {:handler index-handler}}]
      ["/api"
       ["/save" {:post {:handler (partial api-handler :save-event-data)}}]
+      ["/events" {:get {:handler (partial api-handler :get-all-events)
+                        :parameters {:query-params {:user-id int?}}}}]
       ["/event" {:get {:handler (partial api-handler :get-event-data)
                        :parameters {:query-params {:event-id int?}}}}]]])
 

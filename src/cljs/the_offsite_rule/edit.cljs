@@ -6,6 +6,7 @@
             [cljs.core.async :refer [<!]]))
 
 (defonce people (atom []))
+(defonce error (atom nil))
 
 (defn remove-person [person people]
   (remove #(= % person) people))
@@ -63,23 +64,49 @@
      (submission-row)])))
 
 (defn submit-people [people event-id]
-  (http/post "/api/save" {:form-params {:people (prn-str @people) :event-id event-id}}))
+  (go (let [response (<! (http/post "/api/save"
+                                    {:form-params {:people (prn-str @people)
+                                                   :event-id event-id}}))
+            _ (print response)]
+        (if (not= 200 (:status response))
+          (reset! error (:body response))
+          (reset! error nil)))))
+
+;;(defn submit-people [people event-id]
+  ;;(let [response (http/post "/api/save" {:form-params {:people (prn-str @people) :event-id event-id}})
+        ;;_ (print "response")
+        ;;_ (print response)]
+    ;;(if (contains? (:body response) :error)
+      ;;(reset! error (get-in response [:body :error])))))
 
 (defn update-people [event-id]
   (go (let [response (<! (http/get "/api/event"
                                    {:query-params {:event-id event-id}}))]
         (reset! people (:body response)))))
 
+(defn error-display []
+  (fn[]
+    (let [e @error]
+      (if (some? e)
+        [:div e]))))
+
+(defn content []
+  (fn[]
+    (let [routing-data (session/get :route)
+          event-id (get-in routing-data [:route-params :event-id])]
+      (do
+        (update-people event-id)
+        [:span.main
+         [:h1 (str "Event " event-id)]
+         [:div
+          [table]
+          [:input {:type :button
+                   :value :submit
+                   :on-click #(submit-people people event-id)}]
+          [error-display]]]))))
+
 (defn page []
   (fn []
-      (let [routing-data (session/get :route)
-            event-id (get-in routing-data [:route-params :event-id])]
-        (do
-          (update-people event-id)
-          [:span.main
-           [:h1 (str "Event " event-id)]
-           [:div
-            [table]
-            [:input {:type :button
-                     :value :submit
-                     :on-click #(submit-people people event-id)}]]]))))
+    (reset! people [])
+    (reset! error nil)
+      [content]))

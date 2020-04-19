@@ -5,8 +5,10 @@
    [reitit.frontend :as reitit]
    [clerk.core :as clerk]
    [accountant.core :as accountant]
-   [the-offsite-rule.edit :as edit]))
+   [the-offsite-rule.edit :as edit]
+   [the-offsite-rule.event-list :as event-list]))
 
+;;TODO: separate routes into separate namespace so we don't pass path-for into components
 ;; -------------------------
 ;; Routes
 
@@ -23,29 +25,16 @@
     (:path (reitit/match-by-name router route params))
     (:path (reitit/match-by-name router route))))
 
-(path-for :about)
+(path-for :about) ;; what's this?
 ;; -------------------------
 ;; Page components
 
 (defn home-page []
-  (fn []
-    [:span.main
-     [:h1 "The items of {{name}}"]
-     [:ul (map (fn [event-id]
-                 [:li {:name (str "event-" event-id) :key (str "event-" event-id)}
-                  [:a {:href (path-for :event {:event-id event-id})} "Item: " event-id]])
-               (range 1 10))]]))
+  (event-list/page path-for))
 
 
 (defn edit-page []
   (edit/page))
-
-;;(defn new-run-page []
-  ;;(fn []
-    ;;[:span.main
-     ;;[:h1 "Enter people and postcodes"]
-     ;;(edit/postcode-entry-form)
-     ;;[:a {:href (path-for :results)} "Get results"]]))
 
 
 (defn results-page []
@@ -55,15 +44,6 @@
      [:a {:href (path-for :index)} "Home"]
      ]))
 
-
-;;(defn item-page []
-  ;;(fn []
-    ;;(let [routing-data (session/get :route)
-          ;;item (get-in routing-data [:route-params :item-id])]
-      ;;[:span.main
-       ;;[:h1 (str "Item " item " of the-offsite-rule")]
-       ;;[:p [:a {:href (path-for :items)} "Back to the list of items"]]])))
-;;
 
 (defn about-page []
   (fn [] [:span.main

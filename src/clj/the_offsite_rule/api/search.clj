@@ -7,6 +7,7 @@
              [participant :as participant]
              [journey :as journey]]))
 
+;; All of these take an event state
 (defn search-locations [{:keys [event city-finder route-finder postcode-converter] :as state}]
   "Add a list of event locations to the state"
   (assoc state :locations (search/best-locations event city-finder route-finder)))
