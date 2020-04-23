@@ -25,7 +25,7 @@
           :input-type :text}
    :time {:header "Time"
           :display-func #(str (:time %))
-          :input-type :text}})
+          :input-type :datetime-local}})
 
 (defn- add-event [event]
   (let [{:keys [name time]} @event]
