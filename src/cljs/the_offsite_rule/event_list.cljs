@@ -3,7 +3,8 @@
   (:require
    [reagent.core :as reagent :refer [atom]]
    [cljs-http.client :as http]
-   [cljs.core.async :refer [<!]]))
+   [cljs.core.async :refer [<!]]
+   [the-offsite-rule.components.table :as table]))
 
 (defonce events (atom []))
 
@@ -13,16 +14,23 @@
                                    {:query-params {:user-id 1}}))]
         (reset! events (:body response)))))
 
+(defn- columns [path-finder-func]
+  {:name {:header "Name"
+          :display-func (fn[event]
+                          [:a {:href (path-finder-func :event {:event-id (:id event)})}
+                           (:name event)])
+          :input-type :text}
+   :time {:header "Time"
+          :display-func #(str (:time %))
+          :input-type :text}})
+
 (defn event-list [path-finder-func]
   (fn[]
-    (let [event-list @events]
+    (let [event-list @events
+          ]
       (if (empty? event-list)
         [:div "Loading..."]
-        [:ul (map (fn [event]
-                  [:li {:name "blah" :key (str "event-" {:id event})}
-                   [:a {:href (path-finder-func :event {:event-id (:id event)})}
-                    (str (:name event) "---" (:time event))]])
-                event-list)]))))
+        [table/editable-table (columns path-finder-func) events]))))
 
 (defn page [path-finder-func]
   (do (load-events)

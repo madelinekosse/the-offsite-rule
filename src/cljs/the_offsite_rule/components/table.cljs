@@ -8,8 +8,12 @@
   (let [element @element]
     (concat [element] list)))
 
+(defn- format-element [record key header-meta]
+  (let [display-func (:display-func header-meta)]
+    [:td (display-func record)]))
+
 (defn table-row [record header-lookup rows-to-edit]
-  (into [:tr] (conj (map (fn[k] [:td (get record k)])
+  (into [:tr] (conj (map (fn[k] (format-element record k (get header-lookup k)))
                          (keys header-lookup))
                     [:td [:input {:type
                                   :button
@@ -23,10 +27,10 @@
       (str "-input")
       keyword))
 
-(defn- input-box [record key]
-  [:td [:input {:type :text
-           :id (key->id key)
-           :on-change (fn [e] (swap! record #(assoc % key (-> e .-target .-value))))}]])
+(defn- input-box [header-lookup record key]
+  [:td [:input {:type (get-in header-lookup [key :input-type])
+                :id (key->id key)
+                :on-change (fn [e] (swap! record #(assoc % key (-> e .-target .-value))))}]])
 
 (defn- submit-row-box [input-field-names rows-to-edit new-row]
   [:input
@@ -45,20 +49,24 @@
                          (map name)
                          (map str))]
     (into [:tr]
-          (conj (map (partial input-box new-row)
+          (conj (map (partial input-box header-lookup new-row)
                      (keys header-lookup))
                 [:td (submit-row-box input-names rows-to-edit new-row)]))))
 
 ;; header lookup is an ordered map {:key-in-row "header name"}
 ;; rows-to-edit is an atom
 ;; it will be updated whenever stuff changes
+;; TODO: add a way to include column types (for input)
+;; it should allow text input and links (with the link function passed in)
+;; header lookup : {:name {:header "Name" :display-func (str (:name %)) :input-type :text}} is ordered map
 (defn editable-table [header-lookup rows-to-edit]
   (fn[]
     (let [rows @rows-to-edit]
+      (println rows)
       [:table
        (into [:tr]
-             (conj (map (fn [h] [:th h]) (vals header-lookup))
+             (conj (map (fn [h] [:th (:header h)]) (vals header-lookup))
                    [:td]))
        (for [row (reverse rows)]
          (table-row row header-lookup rows-to-edit))
-       (submission-row header-lookup rows-to-edit)])))
+                                        (submission-row header-lookup rows-to-edit)])))

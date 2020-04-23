@@ -39,6 +39,13 @@
        [:h1 (:name event-meta)]
        [:h2 (:time event-meta)]])))
 
+(def columns (sorted-map :name {:header "Name"
+                                :display-func #(str (:name %))
+                                :input-type :text}
+                         :postcode {:header "Postcode"
+                                    :display-func #(str (:postcode %))
+                                    :input-type :text}))
+
 (defn content []
   (fn[]
     (let [routing-data (session/get :route)
@@ -49,7 +56,7 @@
          [event-header]
          [:div
           [table/editable-table
-           (sorted-map :name "Name" :postcode "Postcode")
+           columns
            people]
           [:input {:type :button
                    :value :submit
@@ -61,4 +68,4 @@
     (reset! people [])
     (reset! event {})
     (reset! error nil)
-      [content]))
+    [content]))
