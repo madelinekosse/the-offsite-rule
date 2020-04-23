@@ -23,13 +23,15 @@
                 :id (key->id key)
                 :on-change (fn [e] (swap! record #(assoc % key (-> e .-target .-value))))}]])
 
+(defn- reset-field [field]
+  (set! (.-value (js/document.getElementById (str field))) ""))
+
 (defn- submit-row-box [input-field-names rows-to-edit new-row new-row-func]
   [:input
    {:type :button
     :value "+"
     :on-click (fn [e]
-                (for [field input-field-names]
-                  (set! (.-value (js/document.getElementById field)) ""));; TODO: why this no work?
+                (doall (map reset-field input-field-names))
                 (new-row-func new-row))}])
 
 (defn submission-row [header-lookup rows-to-edit new-row-func]
