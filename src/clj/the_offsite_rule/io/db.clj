@@ -55,12 +55,17 @@
 
 (defn- fetch-event-details [event-id]
   (let [res (first (fetch-event-rows event-id))]
-    (assoc res :time (ct/from-string (:time res)))))
+    (if (nil? res)
+      res
+      (assoc res :time (ct/from-string (:time res))))))
 
 (defn- fetch-all-event-details [user-id]
   (let [res (fetch-user-events user-id)]
     (map (fn[row] (assoc row :time (ct/from-string (:time row))))
          res)))
+
+(defn- delete-event [event-id]
+  (j/delete! db :event ["event_id = ?" event-id]))
 
 (defrecord EventRepository [user-id]
   EventGetter
@@ -68,4 +73,6 @@
   (fetch-event-participants [self event-id] (fetch-event-people event-id))
   (fetch-event [self event-id] (fetch-event-details event-id))
   (create-new-event [self event-name event-time] (new-event user-id event-name event-time))
-  (update-event-people [self event-id people] (update-event-inputs people event-id)))
+  (update-event-people [self event-id people] (update-event-inputs people event-id))
+  (delete-event [self event-id] (delete-event event-id))
+  (user-id [self] user-id))

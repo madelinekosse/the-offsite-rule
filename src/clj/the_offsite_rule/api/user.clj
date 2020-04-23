@@ -11,7 +11,9 @@
   (fetch-event-participants [self event-id] "Return the event participants with this ID")
   (fetch-event [self event-id] "Return the time for event as datetime, event name, event id")
   (create-new-event [self event-name event-time] "Return the ID of created event")
-  (update-event-people [self event-id people] "Save people as this event"))
+  (update-event-people [self event-id people] "Save people as this event")
+  (delete-event [self event-id] "Delete the event and return the row deleted")
+  (user-id [self] "Return the user ID"))
 
 (s/def ::event-meta (s/keys :req-un [::event/name
                                      ::event/id
@@ -80,3 +82,17 @@
   (if (s/valid? ::event-participants people)
     (update-people event-repo event-id people)
     {:error "invalid input"}))
+
+(defn delete-event [event-repo event-id]
+  {:pre [(satisfies? EventGetter event-repo)
+         (s/valid? ::event/id event-id)]
+   :post [(or (= (:deleted %) event-id)
+              (contains? % :error))]}
+  (let [event (fetch-event event-repo event-id)]
+    (if (or (nil? event) (not= (:user_id event) (user-id event-repo)))
+      {:error "No such event for user"}
+      (try
+        (do (delete-event event-repo event-id)
+            (update-event-people event-repo event-id [])
+            {:deleted event-id})
+        (catch Throwable e {:error (.toString e)})))))

@@ -46,6 +46,15 @@
                                     :display-func #(str (:postcode %))
                                     :input-type :text}))
 
+(defn add-person [new-person]
+  (swap! people #(concat [@new-person] %)))
+
+(defn- remove-element [element list]
+  (remove #(= % element) list))
+
+(defn remove-person [person]
+  (swap! people (partial remove-element person)))
+
 (defn content []
   (fn[]
     (let [routing-data (session/get :route)
@@ -57,7 +66,9 @@
          [:div
           [table/editable-table
            columns
-           people]
+           people
+           add-person
+           remove-person]
           [:input {:type :button
                    :value :submit
                    :on-click #(submit-people people event-id)}]

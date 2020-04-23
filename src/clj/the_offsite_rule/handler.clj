@@ -68,6 +68,8 @@
                  :save-event-data (api/save-event-participants params)
                  :get-event-data  (api/get-event params)
                  :get-all-events (api/get-events params)
+                 :new-event (api/new-event params)
+                 :delete-event (api/delete-event params)
                  {:error (str "No handler registered for " operation)})]
     (if (:error result)
       (error-response (:error result))
@@ -84,6 +86,8 @@
      ["/about" {:get {:handler index-handler}}]
      ["/api"
       ["/save" {:post {:handler (partial api-handler :save-event-data)}}]
+      ["/new-event" {:post {:handler (partial api-handler :new-event)}}]
+      ["/delete-event" {:post {:handler (partial api-handler :delete-event)}}]
       ["/events" {:get {:handler (partial api-handler :get-all-events)
                         :parameters {:query-params {:user-id int?}}}}]
       ["/event" {:get {:handler (partial api-handler :get-event-data)

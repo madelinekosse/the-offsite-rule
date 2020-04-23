@@ -5,7 +5,8 @@
              [search :as search]]
             [the-offsite-rule.io
              [db :as db]
-             [postcodes :as postcodes]]))
+             [postcodes :as postcodes]]
+            [clj-time.coerce :as ct]))
 
 ;;TODO: store user repositories between calls
 
@@ -45,6 +46,12 @@
 (defn new-event [{:keys [name time user-id]}]
   "Create a new event with given name and time, returning the new event"
   (let [user-repo (db/->EventRepository user-id)]
-    (user/new-event user-repo
-                    name
-                    time)))
+    (-> (user/new-event user-repo
+                        (str name)
+                        (ct/from-string time))
+        (update :time str))))
+
+(defn delete-event [{:keys [event-id user-id]}]
+  "Remove the event and return 200 if successful"
+  (let [user-repo (db/->EventRepository user-id)]
+    (user/delete-event user-repo event-id)))
