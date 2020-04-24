@@ -4,7 +4,9 @@
             [the-offsite-rule.core
              [event :as event]
              [participant :as participant]
-             [location :as location]]))
+             [location :as location]]
+            [the-offsite-rule.api.search :as search]
+            [clojure.edn :as edn]))
 
 (defprotocol EventGetter
   (fetch-all-events [self] "Return all event names and IDs for the user")
@@ -13,7 +15,12 @@
   (create-new-event [self event-name event-time] "Return the ID of created event")
   (update-event-people [self event-id people] "Save people as this event")
   (delete-event [self event-id] "Delete the event and return the row deleted")
-  (user-id [self] "Return the user ID"))
+  (user-id [self] "Return the user ID")
+  (delete-all-event-locations [self event-id] "Deletes all locations and rotues for the event")
+  (save-event-location [self event-id location-name] "Save location to event and return location ID")
+  (save-participant-route [self event-location-id participant-name duration-minutes legs] "Save and return ID")
+  (load-event-locations [self event-id] "Return a list of locations")
+  (load-participant-routes [self event-location-id] "Return participants and routes"))
 
 (s/def ::event-meta (s/keys :req-un [::event/name
                                      ::event/id
@@ -28,6 +35,50 @@
                               (s/keys :req-un [::event-participants])))
 
 (s/def ::events (s/coll-of ::event-meta))
+
+
+(defn- convert-route-keys [route]
+  {:duration (:journey_time_minutes route)
+   :name (:participant_name route)
+   :journey (edn/read-string (:leg route))})
+
+(defn- add-participant-routes [event-repo event-location]
+  (let [routes (load-participant-routes event-repo (:id event-location))
+        total-duration (->> routes
+                            (map :journey_time_minutes)
+                            (apply +))]
+        (-> event-location
+            (assoc :routes (map convert-route-keys routes))
+            (assoc :duration total-duration))))
+
+(defn event-locations [event-repo event-id]
+  {:pre [(satisfies? EventGetter event-repo)
+         (s/valid? ::event/id event-id)]
+   :post [(s/valid? (s/coll-of ::search/location-summary) %)]}
+  (let [locations (load-event-locations event-repo event-id)]
+    (map (partial add-participant-routes event-repo) locations)))
+
+(defn- save-location [event-repo event-id location]
+  (let [location-id (save-event-location
+                     event-repo
+                     event-id
+                     (:location-name location))]
+    (map (fn[l]
+           (save-participant-route event-repo
+                                        location-id
+                                        (:name l)
+                                        (:duration l)
+                                        (prn-str (:journey l))))
+         (:routes location))))
+
+(defn save-event-locations! [event-repo event-id location-summaries]
+  {:pre [(satisfies? EventGetter event-repo)
+         (s/valid? ::event/id event-id)
+         (s/valid? (s/every ::search/location-summary) location-summaries)]}
+  (try (do (delete-all-event-locations event-repo event-id)
+           (map (partial save-location event-repo event-id) location-summaries)
+           location-summaries)
+       (catch Throwable e {:error (.toString e)})))
 
 (defn- event-row->event-input [{:keys [event_id event_name time]}]
   {:name event_name

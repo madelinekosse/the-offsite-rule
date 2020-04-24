@@ -6,15 +6,29 @@
             [the-offsite-rule.io
              [db :as db]
              [postcodes :as postcodes]]
-            [clj-time.coerce :as ct]))
+            [clj-time.coerce :as ct]
+            [clojure.spec.alpha :as s]))
 
 ;;TODO: store user repositories between calls
 
-(defn get-locations-for [{:keys [event-id user-id]}]
+(defn calculate-locations-for [{:keys [event-id user-id]}]
   "returns a sorted list of event-locations"
   (let [user-repo (db/->EventRepository user-id)
         state (event/state user-repo event-id)]
-    (search/search-locations state)))
+    (->> state
+         search/search-locations
+         search/location-summaries
+         (user/save-event-locations! user-repo event-id))))
+
+
+;;;; temp for front end
+;;(defn get-locations-for [params]
+  ;;[{:total-time 70, :name "Wood Green", :journeys [{:name "mk's ghost", :travel-time 35} {:name "mk", :travel-time 35}]} {:total-time 82, :name "Camden Town", :journeys [{:name "mk's ghost", :travel-time 41} {:name "mk", :travel-time 41}]} {:total-time 92, :name "Islington", :journeys [{:name "mk's ghost", :travel-time 46} {:name "mk", :travel-time 46}]} {:total-time 94, :name "Hackney", :journeys [{:name "mk's ghost", :travel-time 47} {:name "mk", :travel-time 47}]} {:total-time 104, :name "Lambeth", :journeys [{:name "mk's ghost", :travel-time 52} {:name "mk", :travel-time 52}]} {:total-time 104, :name "City of Westminster", :journeys [{:name "mk's ghost", :travel-time 52} {:name "mk", :travel-time 52}]} {:total-time 110, :name "London", :journeys [{:name "mk's ghost", :travel-time 55} {:name "mk", :travel-time 55}]}]
+  ;;)
+
+(defn get-locations-for [{:keys [event-id user-id]}]
+  (let [user-repo (db/->EventRepository user-id)]
+    (user/event-locations user-repo event-id)))
 
 
 (defn get-event [{:keys [event-id user-id]}]
