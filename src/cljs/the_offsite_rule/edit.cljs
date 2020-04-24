@@ -9,16 +9,17 @@
 (defonce people (atom []))
 (defonce event (atom {}))
 (defonce error (atom nil))
-
+(defonce saved? (atom true))
 
 (defn submit-people [people event-id]
+  (reset! saved? nil)
   (go (let [response (<! (http/post "/api/save"
                                     {:form-params {:people (prn-str @people)
-                                                   :event-id event-id}}))
-            _ (print response)]
+                                                   :event-id event-id}}))]
         (if (not= 200 (:status response))
-          (reset! error (:body response))
-          (reset! error nil)))))
+          (do (reset! error (:body response))
+              (reset! saved? false))
+          (reset! saved? true)))))
 
 (defn update-event [event-id]
   (go (let [response (<! (http/get "/api/event"
@@ -26,11 +27,17 @@
         (reset! people (get-in response [:body :event-participants]))
         (reset! event (select-keys (:body response) [:name :time :id])))))
 
-(defn error-display []
+(defn error-display [link-to-results]
   (fn[]
-    (let [e @error]
+    (let [e @error
+          saved @saved?]
       (if (some? e)
-        [:div e]))))
+        [:div e]
+        (if (nil? saved)
+          [:div "Saving..."]
+          (if (true? saved)
+            [:a {:href link-to-results} "Event Locations"]
+            [:div "Unsaved changes"]))))))
 
 (defn event-header []
   (fn[]
@@ -47,15 +54,17 @@
                                     :input-type :text}))
 
 (defn add-person [new-person]
-  (swap! people #(concat [@new-person] %)))
+  (do (reset! saved? false)
+      (swap! people #(concat [@new-person] %))))
 
 (defn- remove-element [element list]
   (remove #(= % element) list))
 
 (defn remove-person [person]
-  (swap! people (partial remove-element person)))
+  (do (reset! saved? false)
+      (swap! people (partial remove-element person))))
 
-(defn content []
+(defn content [path-finder-func]
   (fn[]
     (let [routing-data (session/get :route)
           event-id (get-in routing-data [:route-params :event-id])]
@@ -72,11 +81,13 @@
           [:input {:type :button
                    :value :submit
                    :on-click #(submit-people people event-id)}]
-          [error-display]]]))))
+          [error-display (path-finder-func
+                          :results {:event-id event-id})]]]))))
 
-(defn page []
+(defn page [path-finder-func]
   (fn []
     (reset! people [])
     (reset! event {})
     (reset! error nil)
-    [content]))
+    (reset! saved? true)
+    [content path-finder-func]))

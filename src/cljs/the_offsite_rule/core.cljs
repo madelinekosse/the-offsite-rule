@@ -6,7 +6,9 @@
    [clerk.core :as clerk]
    [accountant.core :as accountant]
    [the-offsite-rule.edit :as edit]
-   [the-offsite-rule.event-list :as event-list]))
+   [the-offsite-rule.event-list :as event-list]
+   [the-offsite-rule.results :as results]
+   ))
 
 ;;TODO: separate routes into separate namespace so we don't pass path-for into components
 ;; -------------------------
@@ -15,7 +17,8 @@
 (def router
   (reitit/router
    [["/" :index]
-    ["/results" :results] 
+    ["/results"
+     ["/:event-id" :results]]
     ["/edit"
      ["/:event-id" :event]]
     ["/about" :about]]))
@@ -34,15 +37,11 @@
 
 
 (defn edit-page []
-  (edit/page))
+  (edit/page path-for))
 
 
 (defn results-page []
-  (fn []
-    [:span.main
-     [:h1 "Results"]
-     [:a {:href (path-for :index)} "Home"]
-     ]))
+  (results/page))
 
 
 (defn about-page []

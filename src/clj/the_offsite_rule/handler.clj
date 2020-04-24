@@ -70,6 +70,7 @@
                  :get-all-events (api/get-events params)
                  :new-event (api/new-event params)
                  :delete-event (api/delete-event params)
+                 :get-event-locations (api/get-locations-for params)
                  {:error (str "No handler registered for " operation)})]
     (if (:error result)
       (error-response (:error result))
@@ -79,7 +80,9 @@
   (reitit-ring/ring-handler
    (reitit-ring/router
     [["/" {:get {:handler index-handler}}]
-     ["/results" {:get {:handler index-handler}}]
+     ["/results"
+      ["/:event-id" {:get {:handler index-handler
+                           :parameters {:path {:event-id int?}}}}]]
      ["/edit"
       ["/:event-id" {:get {:handler index-handler
                            :parameters {:path {:event-id int?}}}}]]
@@ -91,7 +94,10 @@
       ["/events" {:get {:handler (partial api-handler :get-all-events)
                         :parameters {:query-params {:user-id int?}}}}]
       ["/event" {:get {:handler (partial api-handler :get-event-data)
-                       :parameters {:query-params {:event-id int?}}}}]]])
+                       :parameters {:query-params {:event-id int?}}}}]
+      ["/locations" {:get {:handler (partial api-handler :get-event-locations)
+                       :parameters {:query-params {:event-id int?}}}}]
+      ]])
 
    (reitit-ring/routes
     (reitit-ring/create-resource-handler {:path "/" :root "/public"})
