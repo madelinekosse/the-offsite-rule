@@ -34,8 +34,9 @@
 (defn table []
   (fn []
     (let [locations @locations
-          error @error]
-      (if (empty? locations)
+          error @error
+          _ (println locations)]
+      (if (empty? locations) ;;TODO if nothings been added, it just says loading
         [:div "Loading..."]
         (if (some? error)
           [:div (str "An error has occurred: " error)]

@@ -9,7 +9,7 @@
             [clojure.spec.alpha :as s]
             [clj-time.core :as t]
             [the-offsite-rule.core.leg :as leg]
-            [the-offsite-rule.api.user :as user]))
+            ))
 
 ;; This spec tells us how we want to interact with the DB and front end
 (s/def ::location-name string?)

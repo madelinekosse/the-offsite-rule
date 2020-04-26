@@ -6,6 +6,7 @@
    [ring.util.response :refer [response]]
    [the-offsite-rule.middleware :refer [middleware]]
    [the-offsite-rule.api.api :as api]
+   [the-offsite-rule.io.db :as db]
    [hiccup.page :refer [include-js include-css html5]]
    [config.core :refer [env]]
    [clojure.walk :refer :all]
@@ -64,13 +65,14 @@
 
 (defn api-handler [operation request]
   (let [params (extract-params request)
+        user-repo (->db/EventRepository (:user-id params))
         result (case operation
-                 :save-event-data (api/save-event-participants params)
-                 :get-event-data  (api/get-event params)
-                 :get-all-events (api/get-events params)
-                 :new-event (api/new-event params)
-                 :delete-event (api/delete-event params)
-                 :get-event-locations (api/get-locations-for params)
+                 :save-event-data (api/save-event-participants user-repo params)
+                 :get-event-data  (api/get-event user-repo params)
+                 :get-all-events (api/get-events user-repo)
+                 :new-event (api/new-event user-repo params)
+                 :delete-event (api/delete-event user-repo params)
+                 :get-event-locations (api/get-locations-for user-repo params)
                  {:error (str "No handler registered for " operation)})]
     (if (:error result)
       (error-response (:error result))

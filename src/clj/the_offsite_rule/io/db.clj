@@ -65,6 +65,9 @@
     (map (fn[row] (assoc row :time (ct/from-string (:time row))))
          res)))
 
+(defn- fetch-location-rows [event-id]
+  (j/query db ["SELECT * from event_location WHERE event_id = ?" event-id]))
+
 (defn- delete-event-locations [event-id]
   (let [location-ids (->> event-id
                           fetch-location-rows
@@ -80,8 +83,6 @@
   (do (delete-event-locations [event-id])
       (j/delete! db :event ["event_id = ?" event-id])))
 
-(defn- fetch-location-rows [event-id]
-  (j/query db ["SELECT * from event_location WHERE event_id = ?" event-id]))
 
 (defn- store-location [event-id location-name]
   (let [id (next-valid-id "id" "event_location")]
@@ -92,7 +93,7 @@
         id)))
 
 (defn- fetch-route-rows [event-location-id]
-  (j/query db ["SELECT * from participant-route WHERE event_locaion_id = ?"] event-location-id))
+  (j/query db ["SELECT * from participant-route WHERE event_locaion_id = ?" event-location-id]))
 
 (defn- store-route [location-id participant duration legs]
   (let [id (next-valid-id "id" "participant_route")]
