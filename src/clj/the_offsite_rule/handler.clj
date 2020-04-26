@@ -65,7 +65,7 @@
 
 (defn api-handler [operation request]
   (let [params (extract-params request)
-        user-repo (->db/EventRepository (:user-id params))
+        user-repo (db/->EventRepository (:user-id params))
         result (case operation
                  :save-event-data (api/save-event-participants user-repo params)
                  :get-event-data  (api/get-event user-repo params)
