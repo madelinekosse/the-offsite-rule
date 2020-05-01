@@ -9,6 +9,7 @@
                  [cljs-http "0.1.46"]
                  [clj-http "3.10.0"]
                  [clj-time "0.15.2"]
+                 [com.andrewmcveigh/cljs-time "0.5.2"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [org.clojure/data.csv "0.1.2"]
                  [cheshire "5.10.0"]

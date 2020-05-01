@@ -7,55 +7,71 @@
              [db :as db]
              [postcodes :as postcodes]]
             [clj-time.coerce :as ct]
-            [clojure.spec.alpha :as s]))
+            [clojure.spec.alpha :as s]
+            [clj-time.core :as t]))
+
+;; maps event id to run results
+(def past-run-results (atom {}))
 
 ;;TODO: store user repositories between calls
 
-;;;; temp for front end
-;;(defn get-locations-for [params]
-;;[{:total-time 70, :name "Wood Green", :journeys [{:name "mk's ghost", :travel-time 35} {:name "mk", :travel-time 35}]} {:total-time 82, :name "Camden Town", :journeys [{:name "mk's ghost", :travel-time 41} {:name "mk", :travel-time 41}]} {:total-time 92, :name "Islington", :journeys [{:name "mk's ghost", :travel-time 46} {:name "mk", :travel-time 46}]} {:total-time 94, :name "Hackney", :journeys [{:name "mk's ghost", :travel-time 47} {:name "mk", :travel-time 47}]} {:total-time 104, :name "Lambeth", :journeys [{:name "mk's ghost", :travel-time 52} {:name "mk", :travel-time 52}]} {:total-time 104, :name "City of Westminster", :journeys [{:name "mk's ghost", :travel-time 52} {:name "mk", :travel-time 52}]} {:total-time 110, :name "London", :journeys [{:name "mk's ghost", :travel-time 55} {:name "mk", :travel-time 55}]}]
-;;)
+(defn- format-times [event]
+  (let [maybe-stringify (fn[m k]
+                          (if (contains? m k)
+                            (update m k str)
+                            m))]
+    (-> event
+        (maybe-stringify :time)
+        (maybe-stringify :last-simulation)
+        (maybe-stringify :last-update))))
 
 (defn get-locations-for [user-repo {:keys [event-id]}]
-    (user/event-locations user-repo event-id))
-
+  "Returns three keys: last-update, last-simulation, and locations"
+  (let [last-result (get @past-run-results event-id)
+        latest-result (if (or (nil? last-result)
+                              (nil? (:last-simulation last-result))
+                              (t/before? (:last-simulation last-result) (:last-update last-result)))
+                        (user/event-locations user-repo event-id)
+                        last-result)]
+    (format-times latest-result)))
 
 (defn get-event [user-repo {:keys [event-id]}]
   "Returns event participants as name/postcode map"
   (-> user-repo
       (user/event event-id)
-      (update :time str)))
+      format-times))
 
 (defn get-events [user-repo]
   "Return a list of events for the user"
     (->> user-repo
          user/events
-         (map (fn[e] (update e :time str)))));;TODO: split formatting part out to middleware
+         (map format-times)));;TODO: split formatting part out to middleware
 
 (defn- save-people [user-repo event-id people]
   (-> (user/maybe-update-people user-repo
                                 event-id
                                 people)
-      (update :time str)))
+      format-times))
 
 (defn- run-model [user-repo event-id]
-  (->> event-id
-       (event/state user-repo)
-       search/search-locations
-       search/location-summaries
-       (user/save-event-locations! user-repo event-id)))
-
+  (let [results (->> event-id
+                     (event/state user-repo)
+                     search/search-locations
+                     search/location-summaries
+                     (user/save-event-locations! user-repo event-id))]
+    (swap! past-run-results #(assoc % event-id results))))
 
 ;;TODO: save the whole event in event namespace, including name and time changes
 ;; TODO: don't do all this if participants are unchanged
 (defn save-event-participants [user-repo {:keys [people event-id]}]
-  "Saves participants an druns simulations, returning participants (if succesful) or error"
+  "Saves participants and triggers simulation, returning participants (if succesful) or error"
   (let [save-result (save-people user-repo
                                  event-id
                                  people)]
     (if (contains? save-result :error)
       save-result
-      (run-model user-repo event-id))))
+      (let [f (future (run-model user-repo event-id))]
+        save-result))))
 
 ;;TODO should format time correctly
 (defn new-event [user-repo {:keys [name time]}]
@@ -67,4 +83,4 @@
 
 (defn delete-event [user-repo {:keys [event-id]}]
   "Remove the event and return 200 if successful"
-  (user/delete-event user-repo event-id))
+  (user/maybe-delete-event user-repo event-id))

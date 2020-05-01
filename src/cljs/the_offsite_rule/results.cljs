@@ -4,19 +4,33 @@
             [reagent.session :as session]
             [cljs-http.client :as http]
             [reagent.session :as session]
+            [cljs-time.coerce :as ct]
+            [cljs-time.core :as t]
             [cljs.core.async :refer [<!]]))
+
 ;;TODO: implement users
 (def user-id 1)
 
 (defonce locations (atom []))
 (defonce error (atom nil))
 
+(defn- handle-success [{:keys [last-update last-simulation] :as res}]
+  (let [last-update-time (ct/from-string last-update)
+        last-sim-time (if (= last-simulation "")
+                        nil
+                        (ct/from-string last-simulation))]
+    (if (nil? last-sim-time)
+      (reset! error "Simulation running... refresh in a minute")
+      (if (t/before? last-update-time last-sim-time)
+        (reset! error (str "Output is outdated; last run at " last-simulation))
+        (reset! locations (:locations res))))))
+
 (defn- load-locations [event-id]
   (go (let [response (<! (http/get "/api/locations"
                                    {:query-params {:event-id event-id
                                                    :user-id user-id}}))]
         (if (= 200 (:status response))
-          (reset! locations (:body response ))
+          (handle-success (:body response))
           (reset! error (:body response))))))
 
 (defn- record->row [location]

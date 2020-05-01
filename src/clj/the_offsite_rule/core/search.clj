@@ -14,11 +14,11 @@
 (s/def ::location-list (s/every ::location/location))
 
 (defn- get-potential-locations [event finder]
-  "Fetches locations from finder and sorts by distance from midpoint"
   {:pre [(satisfies? CityFinder finder)
          (s/valid? ::event/event event)]
    ;;:post [(s/valid? ::location-list %)] ;; Why doesn't this find it?
    }
+  "Fetches locations from finder and sorts by distance from midpoint"
   (let [midpoint (event/midpoint event)]
     (->> (locations finder)
          (map (fn [l] (assoc l :distance (location/distance l midpoint))))

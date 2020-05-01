@@ -22,9 +22,13 @@
   (load-event-locations [self event-id] "Return a list of locations")
   (load-participant-routes [self event-location-id] "Return participants and routes"))
 
+(s/def ::last-update inst?)
+(s/def ::last-simulation #(or (inst? %) (nil? %)))
 (s/def ::event-meta (s/keys :req-un [::event/name
                                      ::event/id
-                                     ::event/time]))
+                                     ::event/time
+                                     ::last-update
+                                     ::last-simulation]))
 
 (s/def ::participant-input (s/keys :req-un [::participant/name
                                             ::location/postcode]))
@@ -36,27 +40,48 @@
 
 (s/def ::events (s/coll-of ::event-meta))
 
-
+(s/def ::locations (s/coll-of ::search/location-summary))
+(s/def ::location-output (s/keys :req-un [::locations
+                                          ::last-update
+                                          ::last-simulation]))
 (defn- convert-route-keys [route]
   {:duration (:journey_time_minutes route)
    :name (:participant_name route)
-   :journey (edn/read-string (:leg route))})
+   :journey (edn/read-string (:legs route))})
 
 (defn- add-participant-routes [event-repo event-location]
   (let [routes (load-participant-routes event-repo (:id event-location))
         total-duration (->> routes
                             (map :journey_time_minutes)
                             (apply +))]
-        (-> event-location
-            (assoc :routes (map convert-route-keys routes))
-            (assoc :duration total-duration))))
+    {:routes (map convert-route-keys routes)
+     :duration total-duration
+     :location-name (:location_name event-location)}))
+
+(defn- event-row->event-input [{:keys [event_id event_name time last_updated last_simulated]}]
+  {:name event_name
+   :id event_id
+   :time time
+   :last-update last_updated
+   :last-simulation last_simulated})
+
+(defn- last-update-data [event-repo event-id]
+  (-> event-repo
+      (fetch-event event-id)
+      event-row->event-input
+      (select-keys [:last-update :last-simulation])))
 
 (defn event-locations [event-repo event-id]
   {:pre [(satisfies? EventGetter event-repo)
          (s/valid? ::event/id event-id)]
-   :post [(s/valid? (s/coll-of ::search/location-summary) %)]}
-  (let [locations (load-event-locations event-repo event-id)]
-    (map (partial add-participant-routes event-repo) locations)))
+   :post [(s/valid? ::location-output %)]}
+  (->> event-id
+       (load-event-locations event-repo)
+       (map event-row->event-input)
+       (map (partial add-participant-routes event-repo))
+       (assoc {} :locations)
+       (merge (last-update-data event-repo event-id))
+       ))
 
 (defn- save-location [event-repo event-id location]
   (let [location-id (save-event-location
@@ -75,15 +100,14 @@
   {:pre [(satisfies? EventGetter event-repo)
          (s/valid? ::event/id event-id)
          (s/valid? (s/every ::search/location-summary) location-summaries)]}
-  (try (do (delete-all-event-locations event-repo event-id)
-           (map (partial save-location event-repo event-id) location-summaries)
-           location-summaries)
-       (catch Throwable e {:error (.toString e)})))
+  (let [del-res (delete-all-event-locations event-repo event-id)
+        result (try
+                 (map (partial save-location event-repo event-id) location-summaries)
+                 (catch Throwable e {:error (.toString e)}))]
+    (if (map? result)
+      result
+      location-summaries)))
 
-(defn- event-row->event-input [{:keys [event_id event_name time]}]
-  {:name event_name
-   :id event_id
-   :time time})
 
 (defn event [event-repo event-id]
   {:pre [(satisfies? EventGetter event-repo)]
@@ -97,7 +121,8 @@
 
 (defn events [event-repo]
   {:pre [(satisfies? EventGetter event-repo)]
-   :post [(s/valid? ::events %)]}
+   :post [(s/valid? ::events %)]
+   }
   "Returns a list of event-metss without participants"
   (->> event-repo
        fetch-all-events
@@ -134,7 +159,7 @@
     (update-people event-repo event-id people)
     {:error "invalid input"}))
 
-(defn delete-event [event-repo event-id]
+(defn maybe-delete-event [event-repo event-id]
   {:pre [(satisfies? EventGetter event-repo)
          (s/valid? ::event/id event-id)]
    :post [(or (= (:deleted %) event-id)

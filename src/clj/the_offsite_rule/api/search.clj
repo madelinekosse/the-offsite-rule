@@ -31,7 +31,10 @@
                                            ::routes]))
 (defn search-locations [{:keys [event city-finder route-finder postcode-converter] :as state}]
   "Add a list of event locations to the state"
-  (assoc state :locations (search/best-locations event city-finder route-finder)))
+  (let [locations (if (empty? (::event/participants event))
+                    []
+                    (search/best-locations event city-finder route-finder))]
+    (assoc state :locations locations)))
 
 (defn- leg-summary [leg]
   {:pre (s/valid? ::leg/leg leg)
