@@ -56,7 +56,7 @@
                             (apply +))]
     {:routes (map convert-route-keys routes)
      :duration total-duration
-     :location-name (:location_name event-location)}))
+     :location-name (get event-location :location_name "")}))
 
 (defn- event-row->event-input [{:keys [event_id event_name time last_updated last_simulated]}]
   {:name event_name
@@ -80,8 +80,7 @@
        (map event-row->event-input)
        (map (partial add-participant-routes event-repo))
        (assoc {} :locations)
-       (merge (last-update-data event-repo event-id))
-       ))
+       (merge (last-update-data event-repo event-id))))
 
 (defn- save-location [event-repo event-id location]
   (let [location-id (save-event-location

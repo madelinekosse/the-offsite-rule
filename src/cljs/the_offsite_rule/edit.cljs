@@ -13,13 +13,17 @@
 
 (defn submit-people [people event-id]
   (reset! saved? nil)
-  (go (let [response (<! (http/post "/api/save"
+  (go (let [save-response (<! (http/post "/api/save"
                                     {:form-params {:people (prn-str @people)
-                                                   :event-id event-id}}))]
-        (if (not= 200 (:status response))
-          (do (reset! error (:body response))
+                                                   :event-id event-id}}))
+            trigger-response (<! (http/post "/api/trigger-run"
+                                            {:form-params {:event-id event-id}}))]
+        (if (not= 200 (:status save-response))
+          (do (reset! error (:body save-response))
               (reset! saved? false))
-          (reset! saved? true)))))
+          (do (reset! saved? true)
+              (if (not= 200 (:status trigger-response))
+                (reset! error "Failed to trigger run")))))))
 
 (defn update-event [event-id]
   (go (let [response (<! (http/get "/api/event"

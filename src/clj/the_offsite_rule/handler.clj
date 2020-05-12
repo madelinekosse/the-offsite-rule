@@ -73,6 +73,7 @@
                  :new-event (api/new-event user-repo params)
                  :delete-event (api/delete-event user-repo params)
                  :get-event-locations (api/get-locations-for user-repo params)
+                 :trigger-run (api/trigger-run user-repo params)
                  {:error (str "No handler registered for " operation)})]
     (if (:error result)
       (error-response (:error result))
@@ -98,8 +99,8 @@
       ["/event" {:get {:handler (partial api-handler :get-event-data)
                        :parameters {:query-params {:event-id int?}}}}]
       ["/locations" {:get {:handler (partial api-handler :get-event-locations)
-                       :parameters {:query-params {:event-id int?}}}}]
-      ]])
+                           :parameters {:query-params {:event-id int?}}}}]
+      ["/trigger-run" {:post {:handler (partial api-handler :trigger-run)}}]]])
 
    (reitit-ring/routes
     (reitit-ring/create-resource-handler {:path "/" :root "/public"})

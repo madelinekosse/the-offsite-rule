@@ -11,7 +11,7 @@
             [clj-time.core :as t]))
 
 ;; maps event id to run results
-(def past-run-results (atom {}))
+;;(def past-run-results (atom {}))
 
 ;;TODO: store user repositories between calls
 
@@ -27,13 +27,9 @@
 
 (defn get-locations-for [user-repo {:keys [event-id]}]
   "Returns three keys: last-update, last-simulation, and locations"
-  (let [last-result (get @past-run-results event-id)
-        latest-result (if (or (nil? last-result)
-                              (nil? (:last-simulation last-result))
-                              (t/before? (:last-simulation last-result) (:last-update last-result)))
-                        (user/event-locations user-repo event-id)
-                        last-result)]
-    (format-times latest-result)))
+  (->> event-id
+       (user/event-locations user-repo)
+       format-times))
 
 (defn get-event [user-repo {:keys [event-id]}]
   "Returns event participants as name/postcode map"
@@ -54,12 +50,11 @@
       format-times))
 
 (defn- run-model [user-repo event-id]
-  (let [results (->> event-id
-                     (event/state user-repo)
-                     search/search-locations
-                     search/location-summaries
-                     (user/save-event-locations! user-repo event-id))]
-    (swap! past-run-results #(assoc % event-id results))))
+    (->> event-id
+         (event/state user-repo)
+         search/search-locations
+         search/location-summaries
+         (user/save-event-locations! user-repo event-id)))
 
 ;;TODO: save the whole event in event namespace, including name and time changes
 ;; TODO: don't do all this if participants are unchanged
@@ -68,10 +63,12 @@
   (let [save-result (save-people user-repo
                                  event-id
                                  people)]
-    (if (contains? save-result :error)
-      save-result
-      (let [f (future (run-model user-repo event-id))]
-        save-result))))
+    save-result))
+
+(defn trigger-run [user-repo {:keys [event-id]}]
+  (let [f (future (run-model user-repo event-id))]
+    {:event-id event-id
+     :run-status "queued"}))
 
 ;;TODO should format time correctly
 (defn new-event [user-repo {:keys [name time]}]
