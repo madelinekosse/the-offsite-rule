@@ -5,12 +5,12 @@
    [ring.middleware.json :as json]
    [ring.util.response :refer [response]]
    [the-offsite-rule.middleware :refer [middleware]]
-   [the-offsite-rule.api.api :as api]
-   [the-offsite-rule.io.db :as db]
+   [the-offsite-rule.app.io.api :as api]
    [hiccup.page :refer [include-js include-css html5]]
    [config.core :refer [env]]
    [clojure.walk :refer :all]
-   [clojure.edn :as edn]))
+   [clojure.edn :as edn]
+   [clj-time.coerce :as ct]))
 
 (def mount-target
   [:div#app
@@ -50,7 +50,8 @@
        :params
        (reduce-kv
         (fn[m k v]
-          (assoc m (keyword k) (edn/read-string v)))
+          (assoc m (keyword k) (edn/read-string {:readers ct/data-readers}
+                                                v)))
         {})))
 
 (defn- error-response [message]
@@ -63,21 +64,27 @@
    :headers {"Content-Type" "application/json"}
    :body result})
 
+;; TODO: hard coding the user ID as 1 for now
 (defn api-handler [operation request]
-  (let [params (extract-params request)
-        user-repo (db/->EventRepository (:user-id params))
+  (let [params (assoc
+                (extract-params request)
+                :user-id 1)
         result (case operation
-                 :save-event-data (api/save-event-participants user-repo params)
-                 :get-event-data  (api/get-event user-repo params)
-                 :get-all-events (api/get-events user-repo)
-                 :new-event (api/new-event user-repo params)
-                 :delete-event (api/delete-event user-repo params)
-                 :get-event-locations (api/get-locations-for user-repo params)
-                 :trigger-run (api/trigger-run user-repo params)
+                 :save-event-data (api/edit-event params)
+                 :get-event-data  (api/get-event params)
+                 :get-all-events (api/list-events params)
+                 :new-event (api/new-event params)
+                 ;;:delete-event (api/delete-event params)
+                 :get-event-locations (api/run-event params)
+                 ;;:trigger-run (api/trigger-run params)
                  {:error (str "No handler registered for " operation)})]
     (if (:error result)
       (error-response (:error result))
       (success-response result))))
+
+
+;TODO: need a delete endpoint
+;TODO: figure out the trigger vs run problem
 
 (def app
   (reitit-ring/ring-handler
@@ -93,14 +100,15 @@
      ["/api"
       ["/save" {:post {:handler (partial api-handler :save-event-data)}}]
       ["/new-event" {:post {:handler (partial api-handler :new-event)}}]
-      ["/delete-event" {:post {:handler (partial api-handler :delete-event)}}]
+      ;;["/delete-event" {:post {:handler (partial api-handler :delete-event)}}]
       ["/events" {:get {:handler (partial api-handler :get-all-events)
                         :parameters {:query-params {:user-id int?}}}}]
       ["/event" {:get {:handler (partial api-handler :get-event-data)
                        :parameters {:query-params {:event-id int?}}}}]
       ["/locations" {:get {:handler (partial api-handler :get-event-locations)
                            :parameters {:query-params {:event-id int?}}}}]
-      ["/trigger-run" {:post {:handler (partial api-handler :trigger-run)}}]]])
+      ;;["/trigger-run" {:post {:handler (partial api-handler :trigger-run)}}]
+      ]])
 
    (reitit-ring/routes
     (reitit-ring/create-resource-handler {:path "/" :root "/public"})

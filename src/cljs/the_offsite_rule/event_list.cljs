@@ -6,7 +6,7 @@
    [cljs.core.async :refer [<!]]
    [the-offsite-rule.components.table :as table]))
 
-(defonce events (atom []))
+(defonce events (atom nil))
 (defonce error (atom nil))
 
 ;;TODO: implement different users!
@@ -29,10 +29,11 @@
 
 (defn- add-event [event]
   (let [{:keys [name time]} @event]
+    (println (str (type time)))
     (println (str "new event: " name " " time))
     (go (let [response (<! (http/post "/api/new-event"
-                                      {:form-params {:name name
-                                                     :time (prn-str time)
+                                      {:form-params {:name (prn-str name)
+                                                     :time (str time ".000Z")
                                                      :user-id user-id}}))]
           (if (not= 200 (:status response))
             (reset! error (:body response))
@@ -55,7 +56,7 @@
   (fn[]
     (let [event-list @events
           ]
-      (if (empty? event-list)
+      (if (nil? event-list)
         [:div "Loading..."]
         [table/editable-table
          (columns path-finder-func)

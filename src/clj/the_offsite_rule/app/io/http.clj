@@ -1,4 +1,4 @@
-(ns the-offsite-rule.io.http
+(ns the-offsite-rule.app.io.http
   (:require [clj-http.client :as client]
             [cheshire.core :as json]))
 
@@ -12,5 +12,4 @@
 (defn get [url route-params]
   (-> (client/get url {:query-params route-params})
       :body
-      json/decode
-      ))
+      json/decode))
