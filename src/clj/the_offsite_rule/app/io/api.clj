@@ -31,7 +31,7 @@
     (if (nil? maybe-error)
       (-> user-id
           (db/->DB)
-          (user/new-event data)
+          (user/new-event (update data :time value/str->time))
           f/format-event)
       {:error maybe-error})))
 

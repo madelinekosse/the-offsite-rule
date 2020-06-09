@@ -85,7 +85,7 @@
   (let [validation-status {:user-id (valid-or-nil? ::user/id user-id)
                            :event-id (valid-or-nil? ::event-state/id event-id)
                            :name (valid-or-nil? ::event/name name)
-                           :time (valid-or-nil? ::event/time time)
+                           :time (valid-or-nil? ::value/time-str time)
                            :participants (valid-or-nil? ::participants participants)}]
     (if (->> validation-status
              vals

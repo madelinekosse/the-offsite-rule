@@ -29,11 +29,9 @@
 
 (defn- add-event [event]
   (let [{:keys [name time]} @event]
-    (println (str (type time)))
-    (println (str "new event: " name " " time))
     (go (let [response (<! (http/post "/api/new-event"
                                       {:form-params {:name (prn-str name)
-                                                     :time (str time ".000Z")
+                                                     :time (str time ":00.000Z")
                                                      :user-id user-id}}))]
           (if (not= 200 (:status response))
             (reset! error (:body response))

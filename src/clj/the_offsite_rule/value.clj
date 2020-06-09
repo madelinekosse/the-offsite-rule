@@ -15,7 +15,7 @@
 (defn time->str [time]
   {:pre [(s/valid? ::time time)]
    :post [(s/valid? ::time-str %)]}
-  "Convert time to timestamp format for front end such as 20200609T123212.798Z"
+  "Convert time to timestamp format for front end such as 2020-06-09T16:15:28.515Z"
   (ft/unparse (ft/formatters :date-time) time))
 
 (defn str->time [timestamp]

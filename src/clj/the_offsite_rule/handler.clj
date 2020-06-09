@@ -50,8 +50,9 @@
        :params
        (reduce-kv
         (fn[m k v]
-          (assoc m (keyword k) (edn/read-string {:readers ct/data-readers}
-                                                v)))
+          (if (= :time k)
+            (assoc m (keyword k) v)
+            (assoc m (keyword k) (edn/read-string v))))
         {})))
 
 (defn- error-response [message]
