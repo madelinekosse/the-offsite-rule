@@ -30,17 +30,18 @@
 (defn- add-event [event]
   (let [{:keys [name time]} @event]
     (go (let [response (<! (http/post "/api/new-event"
-                                      {:form-params {:name (prn-str name)
+                                      {:json-params {:name name
                                                      :time (str time ":00.000Z")
                                                      :user-id user-id}}))]
           (if (not= 200 (:status response))
             (reset! error (:body response))
             (do (reset! error nil)
-                (swap! events #(concat [@event] %))))))))
+                (swap! events #(concat [(:body response)] %))))))))
 
 (defn- remove-element [element list]
   (remove #(= % element) list))
 
+;; TODO: this doesn't work at all as theres no endpoint
 (defn- remove-event [event]
   (go (let [response (<! (http/post "/api/delete-event"
                                     {:form-params {:event-id (prn-str (:id event))

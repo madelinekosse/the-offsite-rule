@@ -6,6 +6,7 @@
             [cljs.core.async :refer [<!]]
             [the-offsite-rule.components.table :as table]))
 
+;;TODO: this state is so messy!!! Move it into another one
 (defonce people (atom []))
 (defonce event (atom {}))
 (defonce error (atom nil))
@@ -14,21 +15,17 @@
 (defn submit-people [people event-id]
   (reset! saved? nil)
   (go (let [save-response (<! (http/post "/api/save"
-                                    {:form-params {:people (prn-str @people)
-                                                   :event-id event-id}}))
-            trigger-response (<! (http/post "/api/trigger-run"
-                                            {:form-params {:event-id event-id}}))]
+                                         {:json-params {:updates {:participants @people}
+                                                        :event-id event-id}}))]
         (if (not= 200 (:status save-response))
           (do (reset! error (:body save-response))
               (reset! saved? false))
-          (do (reset! saved? true)
-              (if (not= 200 (:status trigger-response))
-                (reset! error "Failed to trigger run")))))))
+          (reset! saved? true)))))
 
 (defn update-event [event-id]
   (go (let [response (<! (http/get "/api/event"
                                    {:query-params {:event-id event-id}}))]
-        (reset! people (get-in response [:body :event-participants]))
+        (reset! people (get-in response [:body :participants]))
         (reset! event (select-keys (:body response) [:name :time :id])))))
 
 (defn error-display [link-to-results]
@@ -71,7 +68,7 @@
 (defn content [path-finder-func]
   (fn[]
     (let [routing-data (session/get :route)
-          event-id (get-in routing-data [:route-params :event-id])]
+          event-id (js/parseInt (get-in routing-data [:route-params :event-id]))]
       (do
         (update-event event-id)
         [:span.main

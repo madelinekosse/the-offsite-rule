@@ -13,6 +13,7 @@
 
 (defonce locations (atom []))
 (defonce error (atom nil))
+(defonce loading (atom true))
 
 (defn- handle-success [{:keys [last-update last-simulation] :as res}]
   (let [last-update-time (ct/from-string last-update)
@@ -26,12 +27,17 @@
         (reset! locations (:locations res))))))
 
 (defn- load-locations [event-id]
+  (reset! loading true)
   (go (let [response (<! (http/get "/api/locations"
                                    {:query-params {:event-id event-id
                                                    :user-id user-id}}))]
         (if (= 200 (:status response))
-          (handle-success (:body response))
-          (reset! error (:body response))))))
+          (do
+            (reset! loading false)
+            (reset! locations (:body response)))
+          (do
+            (reset! loading false)
+            (reset! error (:body response)))))))
 
 (defn- record->row [location]
   [:tr [:td (:name location)]
@@ -49,8 +55,9 @@
   (fn []
     (let [locations @locations
           error @error
+          loading @loading
           _ (println locations)]
-      (if (empty? locations) ;;TODO if nothings been added, it just says loading
+      (if loading
         [:div "Loading..."]
         (if (some? error)
           [:div (str "An error has occurred: " error)]
