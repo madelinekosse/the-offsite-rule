@@ -80,12 +80,15 @@
     (s/valid? spec value)
     true))
 
-(defn params-error? [{:keys [user-id event-id name time participants] :as params}]
+(defn params-error? [{:keys [user-id event-id name time updates] :as params}]
   "Returns an error string or nil if no error"
-  (let [validation-status {:user-id (valid-or-nil? ::user/id user-id)
+  (let [{participants :participants new-name :name new-time :time} updates
+        validation-status {:user-id (valid-or-nil? ::user/id user-id)
                            :event-id (valid-or-nil? ::event-state/id event-id)
                            :name (valid-or-nil? ::event/name name)
+                           :new-name (valid-or-nil? ::event/name new-name)
                            :time (valid-or-nil? ::value/time-str time)
+                           :new-time (valid-or-nil? ::value/time-str new-time)
                            :participants (valid-or-nil? ::participants participants)}]
     (if (->> validation-status
              vals

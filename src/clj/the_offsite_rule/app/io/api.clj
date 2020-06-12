@@ -25,15 +25,12 @@
       (user/load-event event-id)
       f/format-event))
 
-;;TODO: validate params for all of these
 (defn new-event [{:keys [user-id name time] :as data}]
-  (let [maybe-error (f/params-error? data)]
-    (if (nil? maybe-error)
+  "Create the new event and return it"
       (-> user-id
           (db/->DB)
           (user/new-event (update data :time value/str->time))
-          f/format-event)
-      {:error maybe-error})))
+          f/format-event))
 
 (defn edit-event [{:keys [user-id event-id updates]}]
   "Returns the new event in user format"
@@ -44,7 +41,6 @@
       (db/->DB)
       (user/edit-event postcode-converter parsed-updates)
       f/format-event)))
-
 
 (defn run-event [{:keys [user-id event-id]}]
   "Runs, saves, and returns a list of location summaries"

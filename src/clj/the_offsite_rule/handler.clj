@@ -5,6 +5,7 @@
    [ring.middleware.json :as json]
    [ring.util.response :refer [response]]
    [the-offsite-rule.middleware :refer [middleware]]
+   [the-offsite-rule.app.io.format :as f]
    [the-offsite-rule.app.io.api :as api]
    [hiccup.page :refer [include-js include-css html5]]
    [config.core :refer [env]]
@@ -70,18 +71,21 @@
   (let [params (assoc
                 (extract-params request)
                 :user-id 1)
-        result (case operation
-                 :save-event-data (api/edit-event params)
-                 :get-event-data  (api/get-event params)
-                 :get-all-events (api/list-events params)
-                 :new-event (api/new-event params)
-                 ;;:delete-event (api/delete-event params)
-                 :get-event-locations (api/run-event params)
-                 ;;:trigger-run (api/trigger-run params)
-                 {:error (str "No handler registered for " operation)})]
-    (if (:error result)
-      (error-response (:error result))
-      (success-response result))))
+        maybe-error (f/params-error? params)
+        op-func (case operation
+                  :save-event-data api/edit-event
+                  :get-event-data  api/get-event
+                  :get-all-events api/list-events
+                  :new-event api/new-event
+                  ;;:delete-event (api/delete-event params)
+                  :get-event-locations api/run-event
+                  ;;:trigger-run (api/trigger-run params)
+                  (fn[p] {:error (str "No handler registered for " operation)}))]
+    (if (some? maybe-error)
+      (error-response maybe-error)
+      (-> params
+          op-func
+          success-response))))
 
 
 ;TODO: need a delete endpoint
