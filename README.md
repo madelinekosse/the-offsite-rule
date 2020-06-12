@@ -1,5 +1,48 @@
 # the-offsite-rule
 
+## API usage
+
+Note that for all the posts, we will eventually have to add the user ID to query params
+
+Create new event:
+
+```
+curl -X POST -H 'content-type: application/json' -d '{"name": "late night birthday party",
+"time": "2020-06-23T21:00:00.000Z"
+}' -v -i 'http://localhost:3449/api/new-event'
+```
+
+List all events for user (still will only return user 1)
+```
+curl -X GET -H 'content-type: application/json' -d '{"event-id": 0, "updates": {"name": "my birthday party", "participants": [{"name": "mk", "postcode": "N4 3LR"}],
+"time": "2020-06-23T11:00:00.000Z"
+}}' -v -i 'http://localhost:3449/api/events?user-id=1'
+```
+
+Get single event:
+
+```
+curl -X GET -H 'content-type: application/json' -d '{"event-id": 0, "updates": {"name": "my birthday party", "participants": [{"name": "mk", "postcode": "N4 3LR"}],
+"time": "2020-06-23T11:00:00.000Z"
+}}' -v -i 'http://localhost:3449/api/event?event-id=0'
+
+```
+
+Update event data:
+
+```
+curl -X POST -H 'content-type: application/json' -d '{"event-id": 0, "updates": {"name": "my birthday party", "participants": [{"name": "mk", "postcode": "N4 3LR"}],
+"time": "2020-06-23T11:00:00.000Z"
+}}' -v -i 'http://localhost:3449/api/save'
+
+
+```
+
+Get event locations (this one is slow as it may have to run the event)
+
+```
+curl -X GET -v -i 'http://localhost:3449/api/locations?event-id=0'
+```
 This is the the-offsite-rule project.
 
 ## Development mode
