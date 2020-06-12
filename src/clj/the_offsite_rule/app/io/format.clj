@@ -78,6 +78,15 @@
     (s/valid? spec value)
     true))
 
+(defn parse-updates [update-data event-id]
+  "Parses the update fields from request into format used for logic"
+  (let [updates (assoc update-data :id event-id)]
+    (if (contains? updates :time)
+      (update updates :time value/str->time)
+      updates)))
+
+;;TODO: split it into params error and body (ie upate) error and test the above. This is far to complicated when we could have separate one for params and body
+
 (defn params-error? [{:keys [updates] :as params}]
   "Returns an error string or nil if no error"
   (let [validation-items (merge params updates)

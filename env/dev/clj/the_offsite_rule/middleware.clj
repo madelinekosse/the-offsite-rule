@@ -9,11 +9,13 @@
    [ring.middleware.json :refer [wrap-json-response wrap-json-body]]
    ))
 
+
 (def middleware
-  [#(wrap-defaults % (assoc-in site-defaults [:security :anti-forgery] false))
+  [
+   #(wrap-json-body % {:keywords? true})
+   #(wrap-defaults % (assoc-in site-defaults [:security :anti-forgery] false))
    wrap-exceptions
    wrap-params
    wrap-keyword-params
    wrap-reload
-   wrap-json-response
-   wrap-json-body])
+   wrap-json-response])

@@ -2,7 +2,6 @@
   (:require
    [reitit.ring :as reitit-ring]
    [ring.middleware.defaults :refer :all]
-   [ring.middleware.json :as json]
    [ring.util.response :refer [response]]
    [the-offsite-rule.middleware :refer [middleware]]
    [the-offsite-rule.app.io.format :as f]
@@ -66,21 +65,32 @@
    :headers {"Content-Type" "application/json"}
    :body result})
 
-;; TODO: hard coding the user ID as 1 for now
-(defn api-handler [operation request]
+(defn api-get-handler [operation request]
   (let [params (assoc
                 (extract-params request)
                 :user-id 1)
         maybe-error (f/params-error? params)
         op-func (case operation
-                  :save-event-data api/edit-event
                   :get-event-data  api/get-event
                   :get-all-events api/list-events
-                  :new-event api/new-event
-                  ;;:delete-event (api/delete-event params)
                   :get-event-locations api/run-event
-                  ;;:trigger-run (api/trigger-run params)
-                  (fn[p] {:error (str "No handler registered for " operation)}))]
+                  (fn[p] {:error (str "No get handler registered for " operation)}))]
+    (if (some? maybe-error)
+      (error-response maybe-error)
+      (-> params
+          op-func
+          success-response))))
+
+;; TODO: hard coding the user ID as 1 for now
+(defn api-post-handler [operation request]
+  (let [params (-> request
+                   :body
+                   (assoc :user-id 1))
+        maybe-error (f/params-error? params)
+        op-func (case operation
+                  :save-event-data api/edit-event
+                  :new-event api/new-event
+                  (fn[p] {:error (str "No post handler registered for " operation)}))]
     (if (some? maybe-error)
       (error-response maybe-error)
       (-> params
@@ -90,7 +100,7 @@
 
 ;TODO: need a delete endpoint
 ;TODO: figure out the trigger vs run problem
-
+;TODO: for all the posts, we'll want the user ID to be a query param and the content to be the body
 (def app
   (reitit-ring/ring-handler
    (reitit-ring/router
@@ -103,14 +113,14 @@
                            :parameters {:path {:event-id int?}}}}]]
      ["/about" {:get {:handler index-handler}}]
      ["/api"
-      ["/save" {:post {:handler (partial api-handler :save-event-data)}}]
-      ["/new-event" {:post {:handler (partial api-handler :new-event)}}]
+      ["/save" {:post {:handler (partial api-post-handler :save-event-data)}}]
+      ["/new-event" {:post {:handler (partial api-post-handler :new-event)}}]
       ;;["/delete-event" {:post {:handler (partial api-handler :delete-event)}}]
-      ["/events" {:get {:handler (partial api-handler :get-all-events)
+      ["/events" {:get {:handler (partial api-get-handler :get-all-events)
                         :parameters {:query-params {:user-id int?}}}}]
-      ["/event" {:get {:handler (partial api-handler :get-event-data)
+      ["/event" {:get {:handler (partial api-get-handler :get-event-data)
                        :parameters {:query-params {:event-id int?}}}}]
-      ["/locations" {:get {:handler (partial api-handler :get-event-locations)
+      ["/locations" {:get {:handler (partial api-get-handler :get-event-locations)
                            :parameters {:query-params {:event-id int?}}}}]
       ;;["/trigger-run" {:post {:handler (partial api-handler :trigger-run)}}]
       ]])

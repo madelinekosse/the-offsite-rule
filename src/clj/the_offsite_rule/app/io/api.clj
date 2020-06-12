@@ -34,9 +34,7 @@
 
 (defn edit-event [{:keys [user-id event-id updates]}]
   "Returns the new event in user format"
-  (let [parsed-updates (-> updates
-                           (assoc :id event-id)
-                           (update :time value/str->time))]
+  (let [parsed-updates (f/parse-updates updates event-id)]
     (-> user-id
       (db/->DB)
       (user/edit-event postcode-converter parsed-updates)
