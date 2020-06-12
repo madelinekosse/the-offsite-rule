@@ -8,9 +8,7 @@
              [value :as value]
              [location :as location]
              [participant :as p]]
-
-            [the-offsite-rule.event :as e]
-            [the-offsite-rule.location :as l]))
+            [clojure.string :as string]))
 
 ;; namespace to define API output formats
 
@@ -65,9 +63,9 @@
          (assoc meta :participants))))
 
 (defn format-event-location-summaries [e]
-   {:pre [(s/valid? ::event-state/state e)]
-    :post [every? (fn[l] (s/valid? ::location-summary l)) %]}
-  (let [location->summary (fn[l] {:name (::l/name l)
+  {:pre [(s/valid? ::event-state/state e)]
+   :post [every? (fn[l] (s/valid? ::location-summary l)) %]}
+  (let [location->summary (fn[l] {:name (::location/name l)
                                   :duration (value/duration->map (::event/total-journey-time l))})]
     (->> e
          ::event/event
@@ -80,16 +78,15 @@
     (s/valid? spec value)
     true))
 
-(defn params-error? [{:keys [user-id event-id name time updates] :as params}]
+(defn params-error? [{:keys [updates] :as params}]
   "Returns an error string or nil if no error"
-  (let [{participants :participants new-name :name new-time :time} updates
-        validation-status {:user-id (valid-or-nil? ::user/id user-id)
-                           :event-id (valid-or-nil? ::event-state/id event-id)
-                           :name (valid-or-nil? ::event/name name)
-                           :new-name (valid-or-nil? ::event/name new-name)
-                           :time (valid-or-nil? ::value/time-str time)
-                           :new-time (valid-or-nil? ::value/time-str new-time)
-                           :participants (valid-or-nil? ::participants participants)}]
+  (let [validation-items (merge params updates)
+        ;; replace name/time fields with updates is ok since it'll never happen that we get both
+        validation-status {:user-id (valid-or-nil? ::user/id (:user-id validation-items))
+                           :event-id (valid-or-nil? ::event-state/id (:event-id validation-items))
+                           :name (valid-or-nil? ::event/name (:name validation-items))
+                           :time (valid-or-nil? ::value/time-str (:time validation-items))
+                           :participants (valid-or-nil? ::participants (:participants validation-items))}]
     (if (->> validation-status
              vals
              (every? true?))
@@ -97,7 +94,7 @@
       (->> validation-status
            (filter (fn[[k v]] (false? v)))
            keys
-           (map (fn[k] (vector (clojure.core/name k) (get params k))))
-           (map #(str (first %) ": " (last %) " "))
-           (apply str)
+           (map (fn[k] (vector (clojure.core/name k) (get validation-items k))))
+           (map #(str (first %) ": " (last %)))
+           (string/join ", ")
            (str "Bad input for: ")))))
