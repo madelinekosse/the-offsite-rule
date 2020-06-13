@@ -2,7 +2,6 @@
   (:require [the-offsite-rule.app.user :as sut]
             [the-offsite-rule.app.event :as state]
             [the-offsite-rule.app.mock-io :as mocks]
-            ;;            [the-offsite-rule.app.io.db :as temp]
             [the-offsite-rule
              [event :as e]
              [participant :as p]
@@ -119,3 +118,26 @@
         (testing "updates last simulation timestamp"
           (is (= (f/instant->map (t/now))
                  (f/instant->map (::state/last-simulation result)))))))))
+
+(deftest test-delete-event
+  (testing "Delete event"
+    (let [db (mocks/->MockDB (atom []))
+        event-to-delete (sut/new-event db
+                                       {:name "my event"
+                                        :time (t/date-time 2021 1 1 9)})
+        event-to-keep (sut/new-event db
+                                       {:name "my event to keep"
+                                        :time (t/date-time 2021 1 1 9)})
+        delete-result (sut/delete-event db 0)
+        remaining-events (sut/all-events db)]
+      (testing "Removes the event given"
+        (is (= 1
+               (count remaining-events))))
+      (testing "Preserves IDs of remaining events"
+        (is (= 1
+               (-> remaining-events
+                   first
+                   ::state/id))))
+      (testing "Returns true"
+        (is (true? delete-result)))
+      )))

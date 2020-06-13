@@ -9,14 +9,22 @@
              [location :as l]]
             [clj-time.core :as t]))
 
+(defn- event->summary [event]
+  (merge (select-keys event
+                      [::event/id
+                       ::event/last-simulation
+                       ::event/last-update])
+         (select-keys (::e/event event) [::e/name ::e/time]))
+  )
+
 ;;events atom is an indexed list of event states
 (defrecord MockDB [events-atom]
   user/EventRepository
   (-user-id [self] 0)
-  (-all-events [self] (map #(merge (select-keys [::event/id
-                                                 ::event/last-simulation
-                                                 ::event/last-update] %)
-                                   (select-keys [::e/name ::e/time] (::e/event %))) @events-atom))
+  (-all-events [self] (->> @events-atom
+                           (filter some?)
+                           (map event->summary)
+                           (map (fn[e] (assoc e ::user/id 0)))))
   (-next-event-id [self] (count @events-atom))
   (-load-event [self event-id] (nth @events-atom event-id))
   (-save-event [self event] (do (swap! events-atom
@@ -26,7 +34,9 @@
                                              (conj events new-event)
                                              (assoc events id new-event))))
                                        event)
-                                event)))
+                                event))
+  (-delete-event [self event-id] (do (swap! events-atom (fn[events] (assoc events event-id nil)))
+                                     true)))
 
 (def london (l/location [51.514248 -0.093145] {:name "London"}))
 (def birmingham (l/location [52.466667 -1.916667] {:name "Birmingham"}))

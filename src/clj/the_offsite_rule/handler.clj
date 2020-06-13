@@ -90,6 +90,7 @@
         op-func (case operation
                   :save-event-data api/edit-event
                   :new-event api/new-event
+                  :delete-event api/delete-event
                   (fn[p] {:error (str "No post handler registered for " operation)}))]
     (if (some? maybe-error)
       (error-response maybe-error)
@@ -115,7 +116,7 @@
      ["/api"
       ["/save" {:post {:handler (partial api-post-handler :save-event-data)}}]
       ["/new-event" {:post {:handler (partial api-post-handler :new-event)}}]
-      ;;["/delete-event" {:post {:handler (partial api-handler :delete-event)}}]
+      ["/delete-event" {:post {:handler (partial api-post-handler :delete-event)}}]
       ["/events" {:get {:handler (partial api-get-handler :get-all-events)
                         :parameters {:query-params {:user-id int?}}}}]
       ["/event" {:get {:handler (partial api-get-handler :get-event-data)

@@ -24,7 +24,8 @@
   (-all-events [_] "return all event metadata for the user")
   (-next-event-id [_] "return the next available event ID")
   (-load-event [_ event-id] "return an event state for the id given")
-  (-save-event [_ event-state] "save the event state and return it"))
+  (-save-event [_ event-state] "save the event state and return it")
+  (-delete-event [_ event-id] "delete the event given by the ID and return true on success"))
 
 (defn- user-id [user-repo]
   {:pre [(satisfies? EventRepository user-repo)]
@@ -59,6 +60,12 @@
                   next-event-id
                   (event-state/empty-event name time))]
     (save-event user-repo event)))
+
+(defn delete-event [user-repo event-id]
+  {:pre [(satisfies? EventRepository user-repo)
+         (s/valid? ::event-state/id event-id)]
+   :post [(boolean? %)]}
+  (-delete-event user-repo event-id))
 
 (defn- maybe-update-name-time [event {:keys [name time]}]
   (cond-> event

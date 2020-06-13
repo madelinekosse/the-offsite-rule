@@ -25,6 +25,15 @@
       (user/load-event event-id)
       f/format-event))
 
+(defn delete-event [{:keys [user-id event-id]}]
+  "return the element that was deleted or nil"
+  (let [result (-> user-id
+                   (db/->DB)
+                   (user/delete-event event-id))]
+       {:deleted (if result
+                   event-id
+                   nil)}))
+
 (defn new-event [{:keys [user-id name time] :as data}]
   "Create the new event and return it"
       (-> user-id
