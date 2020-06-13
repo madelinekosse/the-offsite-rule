@@ -54,6 +54,7 @@
 (defn event-summaries [user-id]
   (->> user-id
        load-file
+       (filter some?)
        (map
         #(merge (select-keys %
                              [::event/id
@@ -81,10 +82,18 @@
     (do (save-data user-id new)
         event)))
 
+(defn delete-event [user-id event-id]
+  (let [data (load-file user-id)]
+    (if (>= event-id (count data))
+      false
+      (do (save-data user-id (assoc data event-id nil))
+          true))))
+
 (defrecord DB [user-id]
   user/EventRepository
   (-user-id [self] user-id)
   (-all-events [self] (event-summaries user-id))
   (-next-event-id [self] (next-event-id user-id))
   (-load-event [self event-id] (load-event user-id event-id))
-  (-save-event [self event-state] (save-event user-id event-state)))
+  (-save-event [self event-state] (save-event user-id event-state))
+  (-delete-event [self event-id] (delete-event user-id event-id)))

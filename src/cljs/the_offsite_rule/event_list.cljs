@@ -41,10 +41,9 @@
 (defn- remove-element [element list]
   (remove #(= % element) list))
 
-;; TODO: this doesn't work at all as theres no endpoint
 (defn- remove-event [event]
   (go (let [response (<! (http/post "/api/delete-event"
-                                    {:form-params {:event-id (prn-str (:id event))
+                                    {:json-params {:event-id (:id event)
                                                    :user-id user-id}}))]
         (if (not= 200 (:status response))
           (reset! error (:body response))
