@@ -7,6 +7,7 @@
              [event :as event]
              [value :as value]
              [location :as location]
+             [journey :as j]
              [participant :as p]]
             [clojure.string :as string]))
 
@@ -32,6 +33,11 @@
                                            ::duration]))
 
 
+(s/def ::changes int?)
+
+(s/def ::route-summary (s/keys :req-un [::p/name
+                                        ::duration
+                                        ::changes]))
 (defn format-event-summary [summary]
   {:pre [(s/valid? ::user/event-meta summary)]
    :post [(s/valid? ::event-summary %)]}
@@ -71,6 +77,32 @@
          ::event/event
          ::event/locations
          (map location->summary))))
+
+(defn- route-for-participant  [participant routes]
+  "return the route that matches participants start location"
+  (->> routes
+       (filter (fn[r] (= (j/start-location r) (::p/location participant))))
+       first))
+
+;; TODO: what if we have 2 with same name?
+(defn format-event-location-details [e location-name]
+  {:pre [(s/valid? ::event-state/state e)]
+   :post [(every? (fn[x] (s/valid? ::route-summary x)) %)]}
+  (let [participants (get-in e [::event/event ::event/participants])
+        routes (->> e
+                    ::event/event
+                    ::event/locations
+                    (filter (fn[l] (= location-name (::location/name l))))
+                    first
+                    ::event/routes)]
+    (->> participants
+         (map (fn[p] (assoc p :route (route-for-participant p routes))))
+         (map (fn[p] {:name (::p/name p)
+                      :duration (-> p
+                                    :route
+                                    j/total-time
+                                    value/duration->map)
+                      :changes (j/num-changes (:route p))})))))
 
 (defn- valid-or-nil? [spec value]
   "True if the value is missing or conforms to spec"

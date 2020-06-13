@@ -28,3 +28,13 @@
     (let [res (sut/total-time sample-journey)]
       (is (= 32
            (t/in-minutes res))))))
+
+(deftest test-num-changes
+  (testing "Calculate number of changes for a journey"
+    (is (= 2
+           (sut/num-changes sample-journey)))))
+
+(deftest test-start-location
+  (testing "Calculate the start location of the journey"
+    (is (= (l/location [51.1 0.1234])
+           (sut/start-location sample-journey)))))
