@@ -44,7 +44,6 @@
 (s/def ::journey (s/and (s/coll-of ::leg)
                         time-goes-forwards?))
 
-;;TODO: we need functions to help out such as start location and end location getters
 (defn total-time [journey]
   {:pre [(s/valid? ::journey journey)]
    :post [(s/valid? ::value/duration %)]}
@@ -52,3 +51,16 @@
   (let [start (::start-time (first journey))
         end (::end-time (last journey))]
     (value/duration start end)))
+
+(defn num-changes [journey]
+  {:pre [(s/valid? ::journey journey)]}
+  (-> journey
+      count
+      dec))
+
+(defn start-location [journey]
+  {:pre [(s/valid? ::journey journey)]
+   :post [(s/valid? ::l/location %)]}
+  (-> journey
+      first
+      ::start-location))

@@ -97,6 +97,39 @@
         (is (= [{:name "city" :duration {:hours 1 :minutes 40 :seconds 0}}]
                (sut/format-event-location-summaries event-state-with-locations)))))))
 
+(deftest test-format-event-location-details
+  (testing "Format each participants route to a given location"
+    (let [raw-event (event/event
+                     "my event"
+                     (t/date-time 2021 1 1 9)
+                     [(ps/new-participant "mk" "N4 3LR" 0 0) (ps/new-participant "dk" "W6 9DJ" 0.3 51.0)])
+          location (-> (l/location [1 1] {:name "city"})
+                       (assoc ::event/total-journey-time (t/minutes 100))
+                       (assoc ::event/routes [
+                                              [{::j/start-location (l/location [0 0] {:postcode "N4 3LR"})
+                                                ::j/end-location (l/location [1 1] {:name "city"})
+                                                ::j/transport-type "train"
+                                                ::j/start-time (t/date-time 2021 1 1 8 10)
+                                                ::j/end-time (t/date-time 2021 1 1 9)
+                                                }]
+
+                                              [{::j/start-location (l/location [0.3 51.0] {:postcode "W6 9DJ"})
+                                                ::j/end-location (l/location [1 1] {:name "city"})
+                                                ::j/transport-type "train"
+                                                ::j/start-time (t/date-time 2021 1 1 8 15)
+                                                ::j/end-time (t/date-time 2021 1 1 9)
+                                                }]]))
+          event-state-no-locations {::event-state/id 1
+                                    ::event-state/last-simulation (t/date-time 2020 1 1 9 30)
+                                    ::event-state/last-update (t/date-time 2020 1 1 9)
+                                    ::event/event raw-event}
+          event-state-with-locations (assoc-in event-state-no-locations
+                                               [::event/event ::event/locations]
+                                               [location])]
+      (is (= [{:name "mk" :duration {:hours 0 :minutes 50 :seconds 0} :changes 0}
+              {:name "dk" :duration {:hours 0 :minutes 45 :seconds 0} :changes 0}]
+             (sut/format-event-location-details event-state-with-locations "city"))))))
+
 (deftest test-params-error
   (testing "Validation of API parameters"
     (testing "For IDs used to access event"

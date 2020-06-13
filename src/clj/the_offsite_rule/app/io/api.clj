@@ -55,3 +55,12 @@
       (db/->DB)
       (user/run-event-search map-api event-id)
       f/format-event-location-summaries))
+
+;;TODO: this assumes that the event is already up to date! Check if it is and return error if not
+;;TODO: we also need to check the location name is valid
+(defn location-details [{:keys [user-id event-id location-name]}]
+  "Return a list of route summaries for each participant"
+  (-> user-id
+      (db/->DB)
+      (user/load-event event-id)
+      (f/format-event-location-details location-name)))
