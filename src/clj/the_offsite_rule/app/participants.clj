@@ -8,8 +8,6 @@
             [the-offsite-rule.event :as e]))
 
 
-;;TODO: test!!
-
 ;; Un-namespaced coordinates expected from the converter
 (s/def ::coordinates (s/keys :req-un [::l/latitude
                                       ::l/longitude]))
@@ -32,7 +30,6 @@
   (-postcode-lookup converter postcodes))
 
 (defn new-participant [name postcode lat lng]
-  ;; TODO: do we need pre conditions here? can it be private?
   {:post [(s/valid? ::p/participant %)]}
   "Create a new participant"
   (->> {:postcode postcode}
