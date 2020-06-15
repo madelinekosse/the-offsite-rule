@@ -4,6 +4,7 @@
             [cljs-http.client :as http]
             [reagent.session :as session]
             [cljs.core.async :refer [<!]]
+            [the-offsite-rule.routing :as routing]
             [the-offsite-rule.components.table :as table]))
 
 ;;TODO: this state is so messy!!! Move it into another one
@@ -65,7 +66,7 @@
   (do (reset! saved? false)
       (swap! people (partial remove-element person))))
 
-(defn content [path-finder-func]
+(defn content []
   (fn[]
     (let [routing-data (session/get :route)
           event-id (js/parseInt (get-in routing-data [:route-params :event-id]))]
@@ -82,13 +83,13 @@
           [:input {:type :button
                    :value :submit
                    :on-click #(submit-people people event-id)}]
-          [error-display (path-finder-func
+          [error-display (routing/path-for
                           :results {:event-id event-id})]]]))))
 
-(defn page [path-finder-func]
+(defn page []
   (fn []
     (reset! people [])
     (reset! event {})
     (reset! error nil)
     (reset! saved? true)
-    [content path-finder-func]))
+    [content]))
