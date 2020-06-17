@@ -66,14 +66,15 @@
    :body result})
 
 (defn api-get-handler [operation request]
-  (let [params (assoc
-                (extract-params request)
-                :user-id 1)
+  (let [params (-> request
+                   extract-params
+                   (assoc :user-id 1))
         maybe-error (f/params-error? params)
         op-func (case operation
                   :get-event-data  api/get-event
                   :get-all-events api/list-events
                   :get-event-locations api/run-event
+                  :get-location-details api/location-details
                   (fn[p] {:error (str "No get handler registered for " operation)}))]
     (if (some? maybe-error)
       (error-response maybe-error)
@@ -123,8 +124,9 @@
                        :parameters {:query-params {:event-id int?}}}}]
       ["/locations" {:get {:handler (partial api-get-handler :get-event-locations)
                            :parameters {:query-params {:event-id int?}}}}]
-      ;;["/trigger-run" {:post {:handler (partial api-handler :trigger-run)}}]
-      ]])
+      ["/location-detail" {:get {:handler (partial api-get-handler :get-location-details)
+                                 :parameters {:query-params {:event-id int?
+                                                             :location-name string?}}}}]]])
 
    (reitit-ring/routes
     (reitit-ring/create-resource-handler {:path "/" :root "/public"})

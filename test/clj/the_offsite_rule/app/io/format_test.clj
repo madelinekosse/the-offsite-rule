@@ -130,36 +130,41 @@
               {:name "dk" :duration {:hours 0 :minutes 45 :seconds 0} :changes 0}]
              (sut/format-event-location-details event-state-with-locations "city"))))))
 
-(deftest test-params-error
-  (testing "Validation of API parameters"
-    (testing "For IDs used to access event"
-      (testing "Returns nil if no errors found"
-        (is (nil? (sut/params-error? {:user-id 0
-                                      :event-id 0}))))
-      (testing "Returns error string for all invalid parameters"
-        (is (= "Bad input for: user-id: -1, event-id: not an id"
-               (sut/params-error? {:user-id -1
-                                   :event-id "not an id"})))))
-    (testing "For new event name and time"
-      (testing "Returns nil if parameters are valid"
-        (is (nil? (sut/params-error? {:event-id 0
-                                      :name "my event"
-                                      :time "2021-01-01T09:00:00.000Z"}))))
-      (testing "Returns error string for invalid time format"
-        (is (= "Bad input for: time: 20210101T090000"
-               (sut/params-error? {:event-id 0
-                                   :name "my event"
-                                   :time "20210101T090000"})))))
-    (testing "For updates to event"
-      (testing "Returns nil if all fields are given and valid"
-        (is (nil? (sut/params-error? {:updates {:name "my event"
-                                                :time "2021-01-01T09:00:00.000Z"
-                                                :participants []}}))))
-      (testing "Returns nil if some fields are empty"
-        (is (nil? (sut/params-error? {:updates {:name "my event"}}))))
-      (testing "Returns error string if participants are not valid"
-        (is (= "Bad input for: participants: [{:name \"mk\", :postcode \"12345\"}]"
-               (sut/params-error? {:updates {:participants [{:name "mk" :postcode "12345"}]}}))))
-      (testing "Error string includes errors to nested updates"
-        (is (= "Bad input for: name: 100"
-               (sut/params-error? {:updates {:name 100}})))))))
+  (deftest test-params-error
+    (testing "Validation of API parameters"
+      (testing "For IDs used to access event"
+        (testing "Returns nil if no errors found"
+          (is (nil? (sut/params-error? {:user-id 0
+                                        :event-id 0}))))
+        (testing "Returns error string for all invalid parameters"
+          (is (= "Bad input for: user-id: -1, event-id: not an id"
+                 (sut/params-error? {:user-id -1
+                                     :event-id "not an id"})))))
+      (testing "For new event name and time"
+        (testing "Returns nil if parameters are valid"
+          (is (nil? (sut/params-error? {:event-id 0
+                                        :name "my event"
+                                        :time "2021-01-01T09:00:00.000Z"}))))
+        (testing "Returns error string for invalid time format"
+          (is (= "Bad input for: time: 20210101T090000"
+                 (sut/params-error? {:event-id 0
+                                     :name "my event"
+                                     :time "20210101T090000"})))))
+      (testing "For updates to event"
+        (testing "Returns nil if all fields are given and valid"
+          (is (nil? (sut/params-error? {:updates {:name "my event"
+                                                  :time "2021-01-01T09:00:00.000Z"
+                                                  :participants []}}))))
+        (testing "Returns nil if some fields are empty"
+          (is (nil? (sut/params-error? {:updates {:name "my event"}}))))
+        (testing "Returns error string if participants are not valid"
+          (is (= "Bad input for: participants: [{:name \"mk\", :postcode \"12345\"}]"
+                 (sut/params-error? {:updates {:participants [{:name "mk" :postcode "12345"}]}}))))
+        (testing "Error string includes errors to nested updates"
+          (is (= "Bad input for: name: 100"
+                 (sut/params-error? {:updates {:name 100}})))))
+      (testing "For location name parameter"
+        (testing "Only strings are accepted"
+          (is (nil? (sut/params-error? {:location-name "London"})))
+          (is (= "Bad input for: location-name: London"
+                 (sut/params-error? {:location-name 'London})))))))

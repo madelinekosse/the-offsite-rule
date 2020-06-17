@@ -127,7 +127,8 @@
                            :event-id (valid-or-nil? ::event-state/id (:event-id validation-items))
                            :name (valid-or-nil? ::event/name (:name validation-items))
                            :time (valid-or-nil? ::value/time-str (:time validation-items))
-                           :participants (valid-or-nil? ::participants (:participants validation-items))}]
+                           :participants (valid-or-nil? ::participants (:participants validation-items))
+                           :location-name (valid-or-nil? ::location/name (:location-name validation-items))}]
     (if (->> validation-status
              vals
              (every? true?))
