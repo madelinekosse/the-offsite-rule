@@ -115,21 +115,26 @@
                       (map float))]
     (= coords-1 coords-2)))
 
-(defn- add-start-end-locs [from to route]
+(defn add-start-end-locs [from to route]
   {:post [(coordinates-equal? (start-coords route) (start-coords %))
-          (coordinates-equal? (end-coords route) (end-coords %))
-          ]}
+          (coordinates-equal? (end-coords route) (end-coords %))]}
   "Replace the routes start and end locations with those input so they include the name/postcode"
-  (let [new-first-leg (-> route
-                          first
-                          (assoc ::j/start-location from))
-        new-last-leg (-> route
-                         last
-                         (assoc ::j/end-location to))]
+  (if (= 1 (count route))
     (-> route
-        vec
-        (assoc 0 new-first-leg)
-        (assoc (dec (count route)) new-last-leg))))
+        first
+        (assoc ::j/start-location from)
+        (assoc ::j/end-location to)
+        vector)
+    (let [new-first-leg (-> route
+                            first
+                            (assoc ::j/start-location from))
+          new-last-leg (-> route
+                           last
+                           (assoc ::j/end-location to))]
+      (-> route
+          vec
+          (assoc 0 new-first-leg)
+          (assoc (dec (count route)) new-last-leg)))))
 
 (defrecord MapApi []
   s/Map

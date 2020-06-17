@@ -64,3 +64,10 @@
   (-> journey
       first
       ::start-location))
+
+(defn end-location [journey]
+  {:pre [(s/valid? ::journey journey)]
+   :post [(s/valid? ::l/location %)]}
+  (-> journey
+      last
+      ::end-location))
