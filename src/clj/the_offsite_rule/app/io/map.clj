@@ -8,8 +8,8 @@
              [search :as s]
              [location :as l]
              [journey :as j]]
-            [clojure.spec.alpha :as temp] ;;TODO: remove, not needed
-            [the-offsite-rule.app.io.http :as http]))
+            [the-offsite-rule.app.io.http :as http]
+            [the-offsite-rule.app.io.exceptions :as ex]))
 
 (def cities
   (let [rows (with-open [in-file (io/reader (.getFile (io/resource "cities.csv")))]
@@ -53,24 +53,33 @@
 
 (defn- request [from to arrival-time]
   "Make a request for directions from the API"
-  (http/get
-   url
-   {:apiKey api-key
-    :routing "all"
-    :dep (coordinate-string (::l/coordinates from))
-    :arr (coordinate-string (::l/coordinates to))
-    :arrival 1
-    :time (str arrival-time)}))
+  (try
+    (http/get
+     url
+     {:apiKey api-key
+      :routing "all"
+      :dep (coordinate-string (::l/coordinates from))
+      :arr (coordinate-string (::l/coordinates to))
+      :arrival 1
+      :time (str arrival-time)})
+    (catch java.io.IOException e
+      (throw (ex/network-exception "Failed to connect to transport API"))
+      )))
+
 
 (defn- get-route [from to arrival-time]
-  "Make API request and return a list of journey legs"
-  (-> (request from to arrival-time)
-      (get "Res")
-      (get "Connections")
-      (get "Connection")
-      first
-      (get "Sections")
-      (get "Sec")))
+  "Make API request and return a list of journey legs or thro exception"
+  (let [response (request from to arrival-time)
+        routes (get-in response ["Res" "Connections" "Connection"])]
+    (if routes
+      (-> routes
+          first
+          (get-in ["Sections" "Sec"]))
+      (-> response
+          (get-in ["Res" "Message" "text"])
+          ((fn[m] (str "Route API failure: " m)))
+          (ex/bad-gateway-exception)
+          throw))))
 
 (defn- parse-waypoint [waypoint]
   (let [location-data (if (contains? waypoint "Addr")

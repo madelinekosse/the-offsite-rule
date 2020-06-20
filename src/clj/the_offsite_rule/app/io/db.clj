@@ -7,7 +7,8 @@
    [the-offsite-rule.app.user :as user]
    [the-offsite-rule.app.event :as event]
    [the-offsite-rule.event :as e]
-   [clj-time.coerce :as ct]))
+   [clj-time.coerce :as ct]
+   [the-offsite-rule.app.io.exceptions :as ex]))
 
 
 (defn file [user-id]
@@ -34,14 +35,16 @@
       prn-str))
 
 (defn load-file [user-id]
-  "Load file contents if present, otherwise return empty map"
-  (let [f (file user-id)]
-    (if (.exists f)
-      (-> f
-          slurp
-          parse-str
-          )
-      [])))
+  "Load file contents if present, otherwise return empty list"
+  (let [f (file user-id)
+        contents (if (.exists f)
+                   (-> f
+                       slurp
+                       parse-str)
+                   [])]
+    (if (coll? contents)
+      contents
+      (throw (ex/internal-exception "Failed to parse file")))))
 
 (defn save-data [user-id data]
   "Writes data to user file, deleting previous"
@@ -50,18 +53,22 @@
     (.write writer (create-string data))
     (.close writer)))
 
+(defn- event->summary [user-id e]
+  (try (merge (select-keys e
+                      [::event/id
+                       ::event/last-simulation
+                       ::event/last-update])
+         (select-keys (::e/event e) [::e/name ::e/time])
+         {::user/id user-id})
+       (catch Exception e
+         (throw (ex/internal-exception "File is corrupted")))))
+
 
 (defn event-summaries [user-id]
   (->> user-id
        load-file
        (filter some?)
-       (map
-        #(merge (select-keys %
-                             [::event/id
-                              ::event/last-simulation
-                              ::event/last-update])
-                (select-keys (::e/event %) [::e/name ::e/time])
-                {::user/id user-id}))))
+       (map (partial event->summary user-id))))
 
 (defn next-event-id [user-id]
   (-> user-id
@@ -69,23 +76,27 @@
       count))
 
 (defn load-event [user-id event-id]
-  (-> user-id
-      load-file
-      (nth event-id nil)))
+  (let [event (-> user-id
+                  load-file
+                  (nth event-id nil))]
+    (if (some? event)
+      event
+      (throw (ex/bad-input-exception "Event does not exist")))))
 
-;;TODO: check if this works
 (defn save-event [user-id event]
   (let [current (load-file user-id)
         new (if (or (empty? current) (= (::event/id event) (count current)))
               (conj current event)
               (assoc current (::event/id event) event))]
-    (do (save-data user-id new)
-        event)))
+    (try (do (save-data user-id new)
+             event)
+         (catch Exception e
+           (throw (ex/internal-exception "Failed to write to database"))))))
 
 (defn delete-event [user-id event-id]
   (let [data (load-file user-id)]
     (if (>= event-id (count data))
-      false
+      (throw (ex/bad-input-exception "Event does not exist"))
       (do (save-data user-id (assoc data event-id nil))
           true))))
 

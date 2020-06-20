@@ -10,7 +10,8 @@
    [config.core :refer [env]]
    [clojure.walk :refer :all]
    [clojure.edn :as edn]
-   [clj-time.coerce :as ct]))
+   [clj-time.coerce :as ct]
+   [the-offsite-rule.app.io.exceptions :as ex]))
 
 (def mount-target
   [:div#app
@@ -55,15 +56,17 @@
             (assoc m (keyword k) (edn/read-string v))))
         {})))
 
-(defn- error-response [message]
-  {:status 400
-   :headers {}
-   :body message})
-
 (defn- success-response [result]
   {:status 200
    :headers {"Content-Type" "application/json"}
    :body result})
+
+(defn- call-api-func [function params]
+  (try (-> params
+           function
+           success-response)
+       (catch clojure.lang.ExceptionInfo e
+         (ex/exception-reponse e))))
 
 (defn api-get-handler [operation request]
   (let [params (-> request
@@ -77,10 +80,8 @@
                   :get-location-details api/location-details
                   (fn[p] {:error (str "No get handler registered for " operation)}))]
     (if (some? maybe-error)
-      (error-response maybe-error)
-      (-> params
-          op-func
-          success-response))))
+      (ex/client-error-response maybe-error)
+      (call-api-func op-func params))))
 
 ;; TODO: hard coding the user ID as 1 for now
 (defn api-post-handler [operation request]
@@ -94,10 +95,8 @@
                   :delete-event api/delete-event
                   (fn[p] {:error (str "No post handler registered for " operation)}))]
     (if (some? maybe-error)
-      (error-response maybe-error)
-      (-> params
-          op-func
-          success-response))))
+      (ex/client-error-response maybe-error)
+      (call-api-func op-func params))))
 
 
 ;TODO: need a delete endpoint

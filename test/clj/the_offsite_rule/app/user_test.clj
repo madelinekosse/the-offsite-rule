@@ -64,7 +64,7 @@
                     db
                     (mocks/->MockConverter)
                     {:id 0
-                     :participants [{:name "Alice" :postcode "NG7 2QL"}]})]
+                     :participants [{:name "Alice Kosse" :postcode "NG7 2QL"}]})]
         (testing "Adds the new participants location using converter"
           (is (= mocks/alices-house
                  (-> result
@@ -139,5 +139,4 @@
                    first
                    ::state/id))))
       (testing "Returns true"
-        (is (true? delete-result)))
-      )))
+        (is (true? delete-result))))))
