@@ -5,8 +5,7 @@
    [the-offsite-rule.app.io.postcodes :as postcodes]
    [the-offsite-rule.app.io.format :as f]
    [the-offsite-rule.app.user :as user]
-   [clj-time.core :as t]
-   [the-offsite-rule.value :as value]))
+   [clj-time.core :as t]))
 
 (def postcode-converter (postcodes/->Converter))
 
@@ -17,7 +16,7 @@
     (->> user-id
         (db/->DB)
         (user/all-events)
-        (map f/format-event-summary))))
+        (map f/format-event))))
 
 (defn get-event [{:keys [user-id event-id]}]
   (-> user-id
@@ -38,7 +37,7 @@
   "Create the new event and return it"
       (-> user-id
           (db/->DB)
-          (user/new-event (update data :time value/str->time))
+          (user/new-event data)
           f/format-event))
 
 (defn edit-event [{:keys [user-id event-id updates]}]

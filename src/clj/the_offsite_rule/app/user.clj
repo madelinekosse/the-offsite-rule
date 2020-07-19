@@ -8,20 +8,12 @@
 
 (s/def ::id #(s/valid? ::value/id %))
 
-;;TODO: do we need this to list events? could just do the IDs or the whole damn state
-(s/def ::event-meta (s/keys :req [::id
-                                  ::event-state/id
-                                  ::event-state/last-simulation
-                                  ::event-state/last-update
-                                  ::e/name
-                                  ::e/time]))
-
 
 ;;TODO: these will be created for ser when authenticated in layer above
 ;; TODO: how will we handle database errors??
 (defprotocol EventRepository
   (-user-id [_] "return the user id associated with this repository")
-  (-all-events [_] "return all event metadata for the user")
+  (-all-events [_] "return all events for the user")
   (-next-event-id [_] "return the next available event ID")
   (-load-event [_ event-id] "return an event state for the id given")
   (-save-event [_ event-state] "save the event state and return it")
@@ -34,7 +26,7 @@
 
 (defn all-events [user-repo]
   {:pre [(satisfies? EventRepository user-repo)]
-   :post [(every? (fn[x] (s/valid? ::event-meta x)) %)]}
+   :post [(every? (fn[x] (s/valid? ::event-state/state x)) %)]}
   (-all-events user-repo))
 
 (defn- next-event-id [user-repo]

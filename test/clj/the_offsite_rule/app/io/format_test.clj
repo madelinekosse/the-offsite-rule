@@ -15,27 +15,6 @@
             [the-offsite-rule.journey :as j]
             [clojure.spec.alpha :as s]))
 
-(deftest test-format-event-summary
-  (testing "Format event summary for front end"
-    (let [summary {::user/id 0
-                   ::event-state/id 1
-                   ::event-state/last-simulation (t/date-time 2020 1 1 9)
-                   ::event-state/last-update (t/date-time 2020 1 1 9 30)
-                   ::event/name "my event"
-                   ::event/time (t/date-time 2021 1 1 9)}
-          expected {:id 1
-                    :name "my event"
-                    :time "2021-01-01T09:00:00.000Z"
-                    :up-to-date? false}]
-      (testing "For event not up to date"
-        (is (= expected
-               (sut/format-event-summary summary))))
-      (testing "For event that is up to date"
-        (is (= (assoc expected :up-to-date? true)
-               (sut/format-event-summary (assoc summary
-                                                ::event-state/last-simulation
-                                                (t/date-time 2020 1 1 10)))))))))
-
 (deftest test-format-event
   (testing "Format event and participants for front end"
     (let [basic-event {::event-state/id 1
@@ -169,28 +148,34 @@
         (is (= "Bad input for: location-name: London"
                (sut/params-error? {:location-name 'London})))))))
 
-(deftest test-parse-updates
+(deftest test-parse-request-body
   (testing "Formats event update input data for processing"
-    (let [result (sut/parse-updates {:time "2020-01-01T11:11:11.000Z"
-                                     :name "new event name"
-                                     :participants [{:name "maddy and emily" :postcode "n43lr"}
-                                                    {:name "alice" :postcode "w6 9dj"}]}
-                                    0)]
+    (let [result (sut/parse-request-body {:event-id 0
+                                          :updates {:time "2020-01-01T11:11:11.000Z"
+                                                    :name "new event name"
+                                                    :participants [{:name "maddy and emily" :postcode "n43lr"}
+                                                                   {:name "alice" :postcode "w6 9dj"}]}})]
       (testing "Timestamp is converted to datetime"
         (is (= (t/date-time 2020 1 1 11 11 11)
-               (:time result))))
+               (get-in result [:updates :time]))))
       (testing "Event ID is added to the update map"
         (is (= 0
-               (:id result))))
+               (get-in result [:updates :id]))))
       (testing "Participant postcodes are converted to upper case"
         (is (= "W6 9DJ"
                (-> result
+                   :updates
                    :participants
                    last
                    :postcode))))
       (testing "Participant postcodes given witout a space are separated into components"
         (is (= "N4 3LR"
                (-> result
+                   :updates
                    :participants
                    first
                    :postcode)))))))
+
+(deftest test-parse-updates
+  (testing "nil"
+    (is (= 0 0))))

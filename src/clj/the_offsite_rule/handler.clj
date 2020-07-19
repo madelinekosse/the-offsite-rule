@@ -56,12 +56,6 @@
             (assoc m (keyword k) (edn/read-string v))))
         {})))
 
-(defn- parse-body [{:keys [body] :as _request}]
-  (let [event-id (:event-id body)]
-    (-> body
-        (assoc :user-id 1)
-        (update :updates (fn[u] (f/parse-updates u event-id))))))
-
 (defn- success-response [result]
   {:status 200
    :headers {"Content-Type" "application/json"}
@@ -74,6 +68,7 @@
        (catch clojure.lang.ExceptionInfo e
          (ex/exception-reponse e))))
 
+;; TODO: I dont think we need parse-params here at all... we don't get a time field at all so I'm not sure what its doing
 (defn api-get-handler [operation request]
   (let [params (-> request
                    parse-params
@@ -91,7 +86,10 @@
 
 ;; TODO: hard coding the user ID as 1 for now
 (defn api-post-handler [operation request]
-  (let [params (parse-body request)
+  (let [params (-> request
+                   :body
+                   (assoc :user-id 1)
+                   f/parse-request-body)
         maybe-error (f/params-error? params)
         op-func (case operation
                   :save-event-data api/edit-event

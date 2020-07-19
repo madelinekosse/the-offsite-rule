@@ -1,14 +1,12 @@
 (ns the-offsite-rule.app.io.format
   (:require [clojure.spec.alpha :as s]
-            [the-offsite-rule.app.event :as event-state]
+            [the-offsite-rule.app.event :as event]
             [the-offsite-rule.app.participants :as participants]
             [the-offsite-rule.app.user :as user]
+            [the-offsite-rule.app.location :as location]
             [the-offsite-rule
-             [event :as event]
              [value :as value]
-             [location :as location]
-             [journey :as j]
-             [participant :as p]]
+             [journey :as j]]
             [clojure.string :as string]))
 
 ;; namespace to define API output formats
@@ -23,81 +21,67 @@
 
 (s/def ::participants (s/every ::participants/name-postcode-pair))
 
-(s/def ::event-summary (s/keys :req-un [::event-state/id
-                                        ::event/name
+(s/def ::event-summary (s/keys :req-un [::value/id
+                                        ::value/name
                                         ::time
                                         ::up-to-date?]
                                :opt-un [::participants]))
 
-(s/def ::location-summary (s/keys :req-un [::location/name
+(s/def ::location-summary (s/keys :req-un [::value/name
                                            ::duration]))
 
 
 (s/def ::changes int?)
 
-(s/def ::route-summary (s/keys :req-un [::p/name
+(s/def ::route-summary (s/keys :req-un [::value/name
                                         ::duration
                                         ::changes]))
-(defn format-event-summary [summary]
-  {:pre [(s/valid? ::user/event-meta summary)]
-   :post [(s/valid? ::event-summary %)]}
-  "Convert event metadata to correct output format"
-  {:id (::event-state/id summary)
-   :name (::event/name summary)
-   :time (-> summary
-             ::event/time
-             value/time->str)
-   :up-to-date? (event-state/up-to-date? summary)})
 
 ;;TODO: refactor to avoid repetition
 ;;I'd love it if we could move some functions down and ONLY call the layer above not the core
 
 (defn format-event [e]
-  {:pre [(s/valid? ::event-state/state e)]
+  {:pre [(s/valid? ::event/state e)]
    :post [(s/valid? ::event-summary %)]}
   "Format a full event state for the front end input page with meta and participants"
-  (let [meta {
-              :id (::event-state/id e)
-              :name (get-in e [::event/event ::event/name])
-              :time (-> e ::event/event ::event/time value/time->str)
-              :up-to-date? (event-state/up-to-date? e)
-              }]
-    (->> e
-         ::event/event
-         ::event/participants
-         (map participants/name-and-postcode)
-         (assoc meta :participants))))
+  {:id (::event/id e)
+   :name (event/name e)
+   :time (-> e
+             event/time
+             value/time->str)
+   :up-to-date? (event/up-to-date? e)
+   :participants (->> e
+                      event/participants
+                      (map participants/name-and-postcode))})
 
 (defn format-event-location-summaries [e]
-  {:pre [(s/valid? ::event-state/state e)]
+  {:pre [(s/valid? ::event/state e)]
    :post [every? (fn[l] (s/valid? ::location-summary l)) %]}
-  (let [location->summary (fn[l] {:name (::location/name l)
-                                  :duration (value/duration->map (::event/total-journey-time l))})]
+  (let [location->summary (fn[loc] {:name (location/name loc)
+                                    :duration (value/duration->map (location/total-journey-time loc))})]
     (->> e
-         ::event/event
-         ::event/locations
+         event/locations
          (map location->summary))))
 
 (defn- route-for-participant  [participant routes]
   "return the route that matches participants start location"
   (->> routes
-       (filter (fn[r] (= (j/start-location r) (::p/location participant))))
+       (filter (fn[r] (= (j/start-location r) (participants/location-for participant))))
        first))
 
 ;; TODO: what if we have 2 with same name?
 (defn format-event-location-details [e location-name]
-  {:pre [(s/valid? ::event-state/state e)]
+  {:pre [(s/valid? ::event/state e)]
    :post [(every? (fn[x] (s/valid? ::route-summary x)) %)]}
-  (let [participants (get-in e [::event/event ::event/participants])
+  (let [participants (event/participants e)
         routes (->> e
-                    ::event/event
-                    ::event/locations
-                    (filter (fn[l] (= location-name (::location/name l))))
+                    event/locations
+                    (filter (fn[l] (= location-name (location/name l))))
                     first
-                    ::event/routes)]
+                    location/routes)]
     (->> participants
          (map (fn[p] (assoc p :route (route-for-participant p routes))))
-         (map (fn[p] {:name (::p/name p)
+         (map (fn[p] {:name (participants/name-for p)
                       :duration (-> p
                                     :route
                                     j/total-time
@@ -137,25 +121,30 @@
     (update update-map :time value/str->time)
     update-map))
 
-(defn parse-updates [update-data event-id]
+(defn- parse-updates [event-id update-data]
   "Parses the update fields from request into format used for logic"
   (let [updates (assoc update-data :id event-id)]
     (-> updates
         format-time-update
         format-participant-update)))
 
-;;TODO: split it into params error and body (ie upate) error and test the above. This is far to complicated when we could have separate one for params and body
+(defn parse-request-body [{:keys [event-id] :as body}]
+  (-> body
+      (update :updates (partial parse-updates event-id))
+      format-time-update))
 
+;;TODO: split it into params error and body (ie upate) error and test the above. This is far to complicated when we could have separate one for params and body
+;; This is the only place we use the core event namespace - remove it or move this somewhere else so we only use app/event
 (defn params-error? [{:keys [updates] :as params}]
   "Returns an error string or nil if no error"
   (let [validation-items (merge params updates)
         ;; replace name/time fields with updates is ok since it'll never happen that we get both
         validation-status {:user-id (valid-or-nil? ::user/id (:user-id validation-items))
-                           :event-id (valid-or-nil? ::event-state/id (:event-id validation-items))
-                           :name (valid-or-nil? ::event/name (:name validation-items))
+                           :event-id (valid-or-nil? ::event/id (:event-id validation-items))
+                           :name (valid-or-nil? ::value/name (:name validation-items))
                            :time (valid-or-nil? ::value/time-str (:time validation-items))
                            :participants (valid-or-nil? ::participants (:participants validation-items))
-                           :location-name (valid-or-nil? ::location/name (:location-name validation-items))}]
+                           :location-name (valid-or-nil? ::value/name (:location-name validation-items))}]
     (if (->> validation-status
              vals
              (every? true?))

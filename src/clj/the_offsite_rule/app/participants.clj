@@ -56,3 +56,13 @@
   (-> {}
       (assoc :name (::p/name participant))
       (assoc :postcode (get-in participant [::p/location ::l/postcode]))))
+
+(defn location-for [participant]
+  {:pre [(s/valid? ::p/participant participant)]
+   :post [(s/valid? ::p/location %)]}
+  (::p/location participant))
+
+(defn name-for [participant]
+  {:pre [(s/valid? ::p/participant participant)]
+   :post [(s/valid? ::p/name %)]}
+  (::p/name participant))

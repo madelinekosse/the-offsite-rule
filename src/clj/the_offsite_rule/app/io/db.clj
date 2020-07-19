@@ -6,9 +6,9 @@
    [clojure.string :as string]
    [the-offsite-rule.app.user :as user]
    [the-offsite-rule.app.event :as event]
-   [the-offsite-rule.event :as e]
    [clj-time.coerce :as ct]
-   [the-offsite-rule.app.io.exceptions :as ex]))
+   [the-offsite-rule.app.io.exceptions :as ex]
+   [clojure.spec.alpha :as s]))
 
 
 (defn file [user-id]
@@ -53,22 +53,12 @@
     (.write writer (create-string data))
     (.close writer)))
 
-(defn- event->summary [user-id e]
-  (try (merge (select-keys e
-                      [::event/id
-                       ::event/last-simulation
-                       ::event/last-update])
-         (select-keys (::e/event e) [::e/name ::e/time])
-         {::user/id user-id})
+(defn all-events [user-id]
+  (try (->> user-id
+            load-file
+            (filter some?))
        (catch Exception e
          (throw (ex/internal-exception "File is corrupted")))))
-
-
-(defn event-summaries [user-id]
-  (->> user-id
-       load-file
-       (filter some?)
-       (map (partial event->summary user-id))))
 
 (defn next-event-id [user-id]
   (-> user-id
@@ -103,7 +93,7 @@
 (defrecord DB [user-id]
   user/EventRepository
   (-user-id [self] user-id)
-  (-all-events [self] (event-summaries user-id))
+  (-all-events [self] (all-events user-id))
   (-next-event-id [self] (next-event-id user-id))
   (-load-event [self event-id] (load-event user-id event-id))
   (-save-event [self event-state] (save-event user-id event-state))

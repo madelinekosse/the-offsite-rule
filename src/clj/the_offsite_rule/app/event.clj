@@ -16,6 +16,12 @@
                              ::id
                              ::e/event]))
 
+(s/def ::summary (s/keys :req [::id
+                               ::last-simulation
+                               ::last-update
+                               ::e/name
+                               ::e/time]))
+
 (defn empty-event [id name time]
   {:pre [(s/valid? ::id id)
          (s/valid? ::value/name name)
@@ -73,3 +79,33 @@
       (-> event-state
           (assoc-in [::e/event ::e/locations] results)
           (assoc ::last-simulation (t/now))))))
+
+(defn name [event-state]
+  {:pre [(s/valid? ::state event-state)]
+   :post [(s/valid? ::e/name %)]}
+  "Returns the event name"
+  (get-in event-state [::e/event ::e/name]))
+
+(defn time [event-state]
+  {:pre [(s/valid? ::state event-state)]
+   :post [(s/valid? ::e/time %)]}
+  "Returns the event time"
+  (get-in event-state [::e/event ::e/time]))
+
+(defn id [event-state]
+  {:pre [(s/valid? ::state event-state)]
+   :post [(s/valid? ::id %)]}
+  "Returns the event id"
+  (::id event-state))
+
+(defn participants [event-state]
+  {:pre [(s/valid? ::state event-state)]
+   :post [(s/valid? ::e/participants %)]}
+  "Returns the event participants"
+  (get-in event-state [::e/event ::e/participants]))
+
+(defn locations [event-state]
+  {:pre [(s/valid? ::state event-state)]
+   :post [(or (nil? %) (s/valid? ::e/locations %))]}
+  "Returns the event participants"
+  (get-in event-state [::e/event ::e/locations]))
