@@ -110,12 +110,39 @@
     (s/valid? spec value)
     true))
 
+(defn- split-postcode [postcode]
+  (let [len (count (string/split postcode #""))
+        outbound (subs postcode 0 (- len 3))
+        inbound (subs postcode (- len 3))]
+    (str (string/upper-case outbound)
+         " "
+         (string/upper-case inbound))))
+
+(defn- parse-postcode [postcode]
+  (let [parts (string/split postcode #" ")]
+    (if (= 1 (count parts))
+      (split-postcode postcode)
+      (string/upper-case postcode))))
+
+(defn- format-participant-update [update-map]
+  (if (contains? update-map :participants)
+    (->> update-map
+         :participants
+         (map (fn[p] (update p :postcode parse-postcode)))
+         (assoc update-map :participants))
+    update-map))
+
+(defn- format-time-update [update-map]
+  (if (contains? update-map :time)
+    (update update-map :time value/str->time)
+    update-map))
+
 (defn parse-updates [update-data event-id]
   "Parses the update fields from request into format used for logic"
   (let [updates (assoc update-data :id event-id)]
-    (if (contains? updates :time)
-      (update updates :time value/str->time)
-      updates)))
+    (-> updates
+        format-time-update
+        format-participant-update)))
 
 ;;TODO: split it into params error and body (ie upate) error and test the above. This is far to complicated when we could have separate one for params and body
 

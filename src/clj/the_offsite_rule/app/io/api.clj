@@ -43,11 +43,10 @@
 
 (defn edit-event [{:keys [user-id event-id updates]}]
   "Returns the new event in user format"
-  (let [parsed-updates (f/parse-updates updates event-id)]
     (-> user-id
       (db/->DB)
-      (user/edit-event postcode-converter parsed-updates)
-      f/format-event)))
+      (user/edit-event postcode-converter updates)
+      f/format-event))
 
 (defn run-event [{:keys [user-id event-id]}]
   "Runs, saves, and returns a list of location summaries"

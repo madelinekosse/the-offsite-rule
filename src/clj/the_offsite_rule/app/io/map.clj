@@ -63,8 +63,7 @@
       :arrival 1
       :time (str arrival-time)})
     (catch java.io.IOException e
-      (throw (ex/network-exception "Failed to connect to transport API"))
-      )))
+      (throw (ex/network-exception "Failed to connect to transport API")))))
 
 
 (defn- get-route [from to arrival-time]

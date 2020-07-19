@@ -46,7 +46,7 @@
    :headers {"Content-Type" "application/json"}
    :body "{\"a\": \"B\"}"})
 
-(defn- extract-params [_request] ;;TODO eventually we want this to return body also
+(defn- parse-params [_request] ;;TODO eventually we want this to return body also
   (->> _request
        :params
        (reduce-kv
@@ -55,6 +55,12 @@
             (assoc m (keyword k) v)
             (assoc m (keyword k) (edn/read-string v))))
         {})))
+
+(defn- parse-body [{:keys [body] :as _request}]
+  (let [event-id (:event-id body)]
+    (-> body
+        (assoc :user-id 1)
+        (update :updates (fn[u] (f/parse-updates u event-id))))))
 
 (defn- success-response [result]
   {:status 200
@@ -70,7 +76,7 @@
 
 (defn api-get-handler [operation request]
   (let [params (-> request
-                   extract-params
+                   parse-params
                    (assoc :user-id 1))
         maybe-error (f/params-error? params)
         op-func (case operation
@@ -85,9 +91,7 @@
 
 ;; TODO: hard coding the user ID as 1 for now
 (defn api-post-handler [operation request]
-  (let [params (-> request
-                   :body
-                   (assoc :user-id 1))
+  (let [params (parse-body request)
         maybe-error (f/params-error? params)
         op-func (case operation
                   :save-event-data api/edit-event
