@@ -122,14 +122,14 @@
 (deftest test-delete-event
   (testing "Delete event"
     (let [db (mocks/->MockDB (atom []))
-        event-to-delete (sut/new-event db
-                                       {:name "my event"
-                                        :time (t/date-time 2021 1 1 9)})
-        event-to-keep (sut/new-event db
+          event-to-delete (sut/new-event db
+                                         {:name "my event"
+                                          :time (t/date-time 2021 1 1 9)})
+          event-to-keep (sut/new-event db
                                        {:name "my event to keep"
                                         :time (t/date-time 2021 1 1 9)})
-        delete-result (sut/delete-event db 0)
-        remaining-events (sut/all-events db)]
+          delete-result (sut/delete-event db 0)
+          remaining-events (sut/all-events db)]
       (testing "Removes the event given"
         (is (= 1
                (count remaining-events))))
@@ -140,3 +140,30 @@
                    ::state/id))))
       (testing "Returns true"
         (is (true? delete-result))))))
+
+(deftest test-all-events
+  (let [db (mocks/->MockDB (atom []))]
+    (testing "Fetch all events"
+      (testing "Returns empty list where no events present"
+        (is (= []
+               (sut/all-events db))))
+      (testing "Returns empty when only past events present"
+        (do
+          (sut/new-event db
+                         {:name "past event"
+                          :time (t/date-time 2000 1 1 1)})
+          (is (= []
+                 (sut/all-events db)))))
+      (testing "Returns a list of of future events sorted by date"
+        (let [next-week-event (sut/new-event db
+                                             {:name "event in a week"
+                                              :time (t/plus (t/now) (t/days 7))})
+              next-year-event (sut/new-event db
+                                             {:name "event in a year"
+                                              :time (t/plus (t/now) (t/years 1))})
+
+              next-month-event (sut/new-event db
+                                              {:name "event in a month"
+                                               :time (t/plus (t/now) (t/months 1))})]
+          (is (= [next-week-event next-month-event next-year-event]
+                 (sut/all-events db))))))))

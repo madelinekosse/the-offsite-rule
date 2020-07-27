@@ -1,10 +1,9 @@
 (ns the-offsite-rule.app.user
   (:require [clojure.spec.alpha :as s]
-            [the-offsite-rule.event :as e]
-            [the-offsite-rule.app.event :as event-state]
+            [clj-time.core :as t]
+            [the-offsite-rule.app.event :as event]
             [the-offsite-rule.app.participants :as ps]
             [the-offsite-rule.value :as value]))
-
 
 (s/def ::id #(s/valid? ::value/id %))
 
@@ -26,43 +25,46 @@
 
 (defn all-events [user-repo]
   {:pre [(satisfies? EventRepository user-repo)]
-   :post [(every? (fn[x] (s/valid? ::event-state/state x)) %)]}
-  (-all-events user-repo))
+   :post [(every? (fn[x] (s/valid? ::event/state x)) %)]}
+  (->> user-repo
+      -all-events
+      (filter (fn [e] (t/before? (t/now) (event/time e))))
+      (sort-by event/time)))
 
 (defn- next-event-id [user-repo]
   {:pre [(satisfies? EventRepository user-repo)]
-   :post [(s/valid? ::event-state/id %)]}
+   :post [(s/valid? ::event/id %)]}
   (-next-event-id user-repo))
 
 (defn- save-event [user-repo event-state]
   {:pre [(satisfies? EventRepository user-repo)
-         (s/valid? ::event-state/state event-state)]
+         (s/valid? ::event/state event-state)]
    :post [(= % event-state)]}
   (-save-event user-repo event-state))
 
 (defn load-event [user-repo event-id]
   {:pre [(satisfies? EventRepository user-repo)
-         (s/valid? ::event-state/id event-id)]
-   :post [(s/valid? ::event-state/state %)]}
+         (s/valid? ::event/id event-id)]
+   :post [(s/valid? ::event/state %)]}
   (-load-event user-repo event-id))
 
 (defn new-event [user-repo {:keys [name time]}]
   "Create and store a new event with given name and time"
   (let [event (-> user-repo
                   next-event-id
-                  (event-state/empty-event name time))]
+                  (event/empty-event name time))]
     (save-event user-repo event)))
 
 (defn delete-event [user-repo event-id]
   {:pre [(satisfies? EventRepository user-repo)
-         (s/valid? ::event-state/id event-id)]
+         (s/valid? ::event/id event-id)]
    :post [(boolean? %)]}
   (-delete-event user-repo event-id))
 
 (defn- maybe-update-name-time [event {:keys [name time]}]
   (cond-> event
-    (some? name) (event-state/update-name name)
-    (some? time) (event-state/update-time time)))
+    (some? name) (event/update-name name)
+    (some? time) (event/update-time time)))
 
 ;; TODO: more tests, spec in/output, refactor
 ;;could use some consistency in how these namespaces are imported
@@ -79,7 +81,7 @@
          updated-event (if (some? participants)
                          (-> event
                              (maybe-update-name-time details)
-                             (event-state/update-participants (ps/participants participants postcode-converter)))
+                             (event/update-participants (ps/participants participants postcode-converter)))
                          (maybe-update-name-time event details))]
      (save-event user-repo updated-event))))
 
@@ -89,5 +91,5 @@
   "Loads the event, runs it if needed and saves the updated version, returning the result also"
   (let [updated-event (-> user-repo
                          (load-event event-id)
-                         (event-state/run map-api))]
+                         (event/run map-api))]
     (save-event user-repo updated-event)))
